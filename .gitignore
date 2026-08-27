@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+third_party/
+*.iq
+*.npy
+*.bin
+*.csv
+*.jsonl
+captures/
+results/
+live_droneid_results/
+.DS_Store
+
