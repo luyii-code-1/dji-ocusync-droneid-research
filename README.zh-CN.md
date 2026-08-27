@@ -49,6 +49,8 @@ docs/RESEARCH_NOTES.zh-CN.md 中文研究记录
 docs/O4_CRYPTO_CHAIN.md      英文密码学链路
 docs/O4_CRYPTO_CHAIN.zh-CN.md
                             中文密码学链路
+docs/MEASUREMENTS.md        英文详细测量值
+docs/MEASUREMENTS.zh-CN.md  中文详细测量值
 ```
 
 ## 快速使用：检查 AA 或解密 87

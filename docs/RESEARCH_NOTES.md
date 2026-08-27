@@ -2,6 +2,8 @@
 
 [English](RESEARCH_NOTES.md) | [简体中文](RESEARCH_NOTES.zh-CN.md)
 
+For capture-by-capture IQ statistics, timing values, ZC scores, and received-versus-calculated CRC values, see [MEASUREMENTS.md](MEASUREMENTS.md).
+
 ## Evidence standard
 
 The project uses this evidence order:

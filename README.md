@@ -46,6 +46,7 @@ src/droneid_hackrf_scanner.py
 tools/remove_turbo_soft.c   TurboFEC adapter
 docs/RESEARCH_NOTES.md      Complete evidence, experiments, and pitfalls
 docs/O4_CRYPTO_CHAIN.md     AA/87 fields and cryptographic chain
+docs/MEASUREMENTS.md        IQ statistics, formulas, correlations, and CRC values
 ```
 
 ## Quick start: inspect AA or decrypt 87

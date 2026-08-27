@@ -2,6 +2,8 @@
 
 [English](RESEARCH_NOTES.md) | [简体中文](RESEARCH_NOTES.zh-CN.md)
 
+逐采集文件的 IQ 统计、时间参数、ZC 分数以及 CRC 接收值/计算值见 [MEASUREMENTS.zh-CN.md](MEASUREMENTS.zh-CN.md)。
+
 ## 证据规则
 
 本项目按以下优先级处理信息：

@@ -99,6 +99,32 @@ CTR mode provides confidentiality rather than authentication. Validate fixed fie
 
 The verified plaintext includes version, sequence, state, a 16-byte serial-number field, raw coordinates, altitude, relative height, three axis values, yaw, millisecond time, pilot coordinates, home coordinates, product type, and a variable-length UUID.
 
+The validated 109-byte plaintext uses the following offsets. Multi-byte numeric fields are little-endian:
+
+| Plaintext offset | Size | Type | Observed meaning / conversion |
+|---:|---:|---|---|
+| 0 | 1 | uint8 | message marker, observed `0x10` |
+| 1 | 1 | uint8 | protocol version |
+| 2 | 2 | uint16 | sequence number |
+| 4 | 2 | uint16 | state flags |
+| 6 | 16 | ASCII | serial-number field, NUL padded |
+| 22 | 4 | int32 | aircraft longitude, radians × 10⁷ |
+| 26 | 4 | int32 | aircraft latitude, radians × 10⁷ |
+| 30 | 2 | int16 | altitude |
+| 32 | 2 | int16 | relative height × 10 |
+| 34 | 2 | int16 | X / velocity-like raw value |
+| 36 | 2 | int16 | Y / velocity-like raw value |
+| 38 | 2 | int16 | Z / velocity-like raw value |
+| 40 | 2 | int16 | yaw × 100 degrees |
+| 42 | 8 | uint64 | Unix time in milliseconds |
+| 50 | 4 | int32 | pilot latitude, radians × 10⁷ |
+| 54 | 4 | int32 | pilot longitude, radians × 10⁷ |
+| 58 | 4 | int32 | home longitude, radians × 10⁷ |
+| 62 | 4 | int32 | home latitude, radians × 10⁷ |
+| 66 | 1 | uint8 | product type |
+| 67 | 1 | uint8 | UUID length |
+| 68 | variable | ASCII | UUID |
+
 Coordinates use signed 32-bit fixed-point radians:
 
 ```text
