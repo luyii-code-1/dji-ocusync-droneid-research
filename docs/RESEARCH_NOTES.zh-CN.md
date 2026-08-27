@@ -1,5 +1,7 @@
 # O2 / O4 DroneID 研究笔记
 
+[English](RESEARCH_NOTES.md) | [简体中文](RESEARCH_NOTES.zh-CN.md)
+
 ## 证据规则
 
 本项目按以下优先级处理信息：

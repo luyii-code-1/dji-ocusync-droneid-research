@@ -1,5 +1,7 @@
 # O4 AA / 87 密码学链路
 
+[English](O4_CRYPTO_CHAIN.md) | [简体中文](O4_CRYPTO_CHAIN.zh-CN.md)
+
 ## 1. 已确认的会话关系
 
 AA 是关键材料包，87 是动态遥测包。逻辑包 bytes `6:10` 是 4 字节 `hashcode`。同一会话的 AA 与 87 共享 hashcode。

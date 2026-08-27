@@ -1,17 +1,20 @@
 # Contributing
 
-欢迎提交可复现的协议、DSP 和密码学研究改进。
+[English](CONTRIBUTING.md) | [简体中文](CONTRIBUTING.zh-CN.md)
 
-提交前请确认：
+Reproducible protocol, DSP, and cryptographic research improvements are welcome.
 
-- 结论标注为“已验证”“强证据”或“假设”；
-- 解码成功提供 CRC24A、DJI CRC16 或其他明确一致性证据；
-- 样本使用合成或脱敏的 SN、UUID 与位置数据，API Key、note 和服务凭据保存在本地安全环境；
-- IQ/固件样本具备合法分享权限；
-- 第三方代码保留来源和许可证，不直接复制许可证不兼容内容；
-- 主动服务端测试已获得明确授权。
+Before submitting a contribution, please ensure that:
 
-运行基础检查：
+- conclusions are labeled as verified, strong evidence, or hypothesis;
+- successful decodes include CRC24A, DJI CRC16, or another explicit consistency check;
+- examples use synthetic or anonymized serial numbers, UUIDs, and locations;
+- API keys, notes, and service credentials remain in a secure local environment;
+- IQ and firmware samples are legally shareable;
+- third-party code retains its source and license information;
+- active service-side testing has explicit authorization.
+
+Run the basic checks:
 
 ```bash
 python3 -m py_compile src/*.py tests/*.py

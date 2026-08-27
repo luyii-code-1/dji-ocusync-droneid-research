@@ -1,23 +1,25 @@
 # DJI OcuSync DroneID Research
 
-基于 HackRF 原始 IQ 的 DJI OcuSync O2/O4 DroneID 可复现实验记录与工具。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-本仓库整理了截至 **2026-08-27** 已由原始采样、CRC 和连续遥测共同验证的结论。研究重点是接收链、物理层、包结构与密码学封装，并清晰标注已验证范围与待研究步骤。
+Reproducible DJI OcuSync O2/O4 DroneID research and tools based on raw HackRF IQ captures.
 
-## 当前状态
+This repository consolidates findings verified as of **2026-08-27** through raw captures, CRC validation, and continuous telemetry. It covers the receive chain, physical layer, packet structure, and cryptographic envelope, with explicit confidence levels and open research steps.
 
-| 环节 | 状态 | 验证方式 |
+## Status
+
+| Stage | Status | Evidence |
 |---|---|---|
-| HackRF int8 IQ 输入 | 已验证 | 实际录制与回放 |
-| O2 9-symbol OFDM / ZC600+147 | 已验证 | 相关峰与帧结构 |
-| O2 LTE Turbo transport | 已验证 | CRC24A 余数为 0 |
-| O2 内层载荷 | 已验证 | DJI CRC16 余数为 0 |
-| O4 AA/87 空口逻辑包 | 已验证 | 双 CRC 有效样本 |
-| AA 的 C1 曲线点与 `C1‖C3‖C2` 布局 | 强证据 | 多会话曲线方程检查 |
-| `note → 87` | 已验证 | AES-128-CTR 解出连续、合理遥测 |
-| `AA → note` | 研究中 | 需要 SM2 私钥或等价解密模块 |
+| HackRF signed-int8 IQ input | Verified | Live capture and replay |
+| O2 9-symbol OFDM / ZC600+147 | Verified | Correlation peaks and frame structure |
+| O2 LTE Turbo transport | Verified | CRC24A remainder equals zero |
+| O2 inner payload | Verified | DJI CRC16 remainder equals zero |
+| O4 AA/87 logical packets | Verified | Double-CRC-valid captures |
+| AA C1 curve point and `C1‖C3‖C2` layout | Strong evidence | Curve checks across multiple sessions |
+| `note → 87` | Verified | AES-128-CTR produced coherent sequential telemetry |
+| `AA → note` | In research | Requires the SM2 private key or an equivalent decryptor |
 
-目前确认的混合加密链：
+The confirmed hybrid-encryption chain is:
 
 ```text
 HackRF IQ
@@ -27,59 +29,57 @@ HackRF IQ
 
 AA:
   SM2-compatible C1‖C3‖C2
-  → 16-byte note                  （private-key step）
+  → 16-byte note                  (private-key step)
 
 87:
   AES-128-CTR(key=note, IV=nonce8 || 0x00×8)
   → SN / UUID / drone / pilot / home telemetry
 ```
 
-## 仓库内容
+## Repository layout
 
 ```text
-src/o4_packet_tool.py       AA 结构检查与已知 note 的 87 本地解密
-src/o2_droneid_decode.py    经典 O2 单帧 PHY/FEC 解码实验程序
+src/o4_packet_tool.py       Inspect AA and decrypt 87 with a known note
+src/o2_droneid_decode.py    Experimental classic O2 PHY/FEC decoder
 src/droneid_hackrf_scanner.py
-                            HackRF 实时/回放扫描器
-tools/remove_turbo_soft.c   TurboFEC 适配器
-docs/RESEARCH_NOTES.zh-CN.md
-                            完整研究经验、证据等级与实验陷阱
-docs/O4_CRYPTO_CHAIN.zh-CN.md
-                            AA/87 字段和密码学链路
+                            Live and replay HackRF scanner
+tools/remove_turbo_soft.c   TurboFEC adapter
+docs/RESEARCH_NOTES.md      Complete evidence, experiments, and pitfalls
+docs/O4_CRYPTO_CHAIN.md     AA/87 fields and cryptographic chain
 ```
 
-## 快速使用：检查 AA 或解密 87
+## Quick start: inspect AA or decrypt 87
 
-环境要求：Python 3.10+、OpenSSL 命令行。
+Requirements: Python 3.10+ and the OpenSSL command-line tool.
 
 ```bash
-python3 src/o4_packet_tool.py '<AA完整Hex>'
-python3 src/o4_packet_tool.py --note '<16-byte-note-hex>' '<87完整Hex>'
+python3 src/o4_packet_tool.py '<complete-AA-hex>'
+python3 src/o4_packet_tool.py --note '<16-byte-note-hex>' '<complete-87-hex>'
 ```
 
-`note` 是同一加密会话的 16 字节 AES 密钥。同一 `hashcode` 下的多个 87 使用同一 note、各自携带 nonce。会话刷新或飞行器重启导致 hashcode 改变后，必须获得新的 AA 对应 note。
+The `note` is a 16-byte AES session key. Multiple 87 packets with the same `hashcode` use the same note and carry individual nonces. A session refresh or aircraft restart changes the hashcode and requires the note paired with the new AA.
 
-当前工具覆盖 AA 结构验证，以及使用已知 note 解密同会话 87；AA 恢复 note 需要另行提供 SM2 私钥或等价解密模块。
+The current tool validates AA structure and decrypts same-session 87 packets with a supplied note. Recovering the note from AA requires an SM2 private key or an equivalent local decryption module.
 
-## 采样率陷阱
+## Sample-rate requirement
 
-HackRF 文件是交错的 signed int8 I/Q，每个 complex sample 为 2 字节。若使用：
+HackRF files contain interleaved signed-int8 I/Q samples, or 2 bytes per complex sample. For example:
 
 ```bash
 hackrf_transfer -r capture.iq -f 2429500000 -s 20000000 -l 16 -g 20 -a 0
 ```
 
-文件实际采样率就是 20 MS/s。经典检测器在 15.36 MS/s 工作时，必须先重采样：
+This records at 20 MS/s. The classic detector operates at 15.36 MS/s, so the input must be resampled first:
 
 ```text
 20.00 MS/s × 96 / 125 = 15.36 MS/s
 ```
 
-分析器输入采样率必须与文件实际采样率一致；经典 15.36 MS/s 检测器处理 20 MS/s 采样时应先完成上述重采样，以保持 ZC 时间尺度、CP、FFT 窗口、CFO 和 CRC 链路一致。
+The analyzer sample rate must match the capture. Resampling preserves the ZC time scale, CP length, FFT window, CFO estimate, and downstream CRC recovery.
 
-## O2 解码器说明
+## O2 decoder
 
-`src/o2_droneid_decode.py` 是实验性参考实现。它依赖 NumPy 和基于 [TurboFEC](https://github.com/ttsou/turbofec) 构建的辅助程序：
+`src/o2_droneid_decode.py` is an experimental reference implementation. It requires NumPy and a helper built from [TurboFEC](https://github.com/ttsou/turbofec):
 
 ```bash
 git clone https://github.com/ttsou/turbofec third_party/turbofec
@@ -91,25 +91,23 @@ clang -O3 -Ithird_party/turbofec/include -Ithird_party/turbofec/src \
   -lm -o build/remove_turbo_soft
 ```
 
-不同平台可能需要调整 SIMD、架构参数以及脚本中启动辅助程序的方式。有效解码必须同时满足：
+SIMD flags and compiler options may need adjustment on other platforms. A valid decode requires both checks:
 
 ```text
 CRC24A(176-byte transport) == 0
 DJI_CRC16(logical payload) == 0
 ```
 
-有效解码判据以 CRC24A 与 DJI CRC16 同时通过为准。
+## Publication and privacy
 
-## 公开数据规范
+Repository examples use synthetic or anonymized identifiers and locations. Credentials, session keys, and large raw captures belong in the researcher's secure local environment. Third-party code and firmware are referenced through their original sources and licenses. Before publishing captures, sanitize payloads, absolute paths, timestamps, locations, and acquisition metadata that may identify people or devices.
 
-仓库示例使用合成或脱敏的设备标识与位置。凭据、会话密钥和原始大型采样保存在研究者本地安全环境；第三方代码与固件通过原始来源和许可证引用。发布采样时应同步清理载荷、绝对路径、时间地点及采集元数据中的个人信息。
+## Responsible use
 
-## 合法与安全使用
+This project supports interoperability research, spectrum analysis, receiver development, and authorized security research. Its intended scope is passive reception and explicitly authorized testing performed in compliance with applicable radio, privacy, aviation, and computer-security laws.
 
-本项目用于互操作性研究、频谱分析、接收机开发和经授权的安全研究。使用范围为遵守所在地无线电、隐私、航空和计算机安全法规的被动接收及明确授权测试。
-
-DJI、OcuSync 和相关产品名称属于各自权利人。本项目与 DJI 无隶属或背书关系。
+DJI, OcuSync, and related product names belong to their respective owners. This project is independent and is not affiliated with or endorsed by DJI.
 
 ## License
 
-本仓库原创内容使用 [GNU General Public License v3.0](LICENSE)。第三方依赖仍适用其各自许可证。
+Original content in this repository is licensed under the [GNU General Public License v3.0](LICENSE). Third-party dependencies remain subject to their respective licenses.
