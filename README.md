@@ -176,7 +176,7 @@ C1 values from multiple independent sessions satisfy the standard SM2 curve equa
 ```text
 p = FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF
 a = FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC
-b = 28E9FA9E9D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93
+b = 28E9FA9E9D9F5E344D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93
 ```
 
 The repository's local packet evidence originally identified the `64 + 32 + 16` structure as raw-point SM2 `C1‖C3‖C2`. Independent public confirmation now identifies CRYP explicitly as an SM2-wrapped session-key packet.
