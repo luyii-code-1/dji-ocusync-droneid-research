@@ -1,78 +1,77 @@
 # DJI OcuSync DroneID Research
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | [事实与证据](FACTS.zh-CN.md)
 
 基于 HackRF 原始 IQ 的 DJI OcuSync DroneID PHY、逻辑包与密码学链路可复现研究。
 
-**更新于 2026-09-17。** 本仓库不再把 O4 的 AA/87 密码关系写成“高置信假设”。本地包结构测量、已知会话密钥下的连续遥测解密，以及第三方公开独立确认，已经能够确定这两类报文的协议角色。
+**更新于 2026-10-02。** 仓库现在严格区分“本地可复现实测”与“第三方公开确认”。逐条事实、证据等级和精确引用见 [FACTS.zh-CN.md](FACTS.zh-CN.md)。
+
+当前 O4 主结论为：CRYP 中封装的是**随机生成的 AES-128 会话密钥**，使用 SM2 公钥加密；INFP 是使用该会话密钥进行 **AES-128-CTR** 加密的 DroneID 遥测。公开讨论已经给出一份完整参考解密器——只要提供对应的 256-bit SM2 私钥标量即可运行。当前缺口是对应私钥材料/等价 dongle 能力，而不是包格式或 AES 层。
 
 ## 已确认结论
 
-对于本仓库实测的 DJI Mini 5 Pro O4：
+对于本仓库在 Mini 5 Pro 上复现、并由公开讨论独立确认的 O4 链路：
 
 ```text
-HackRF IQ
-  → ZC / OFDM / Turbo
-  → CRC24A + DJI CRC16
-  → 逻辑包
-
-AA / CRYP
-  → SM2 封装的 16-byte 会话密钥（note）
-  → 需要对应 SM2 私钥或等价解密器才能本地解封
-
-87 / INFP
-  → AES-128-CTR
-  → key = note
-  → IV = nonce8 || 0x00 × 8
-  → SN / UUID / 飞行器 / 操作者 / Home 等动态遥测
+飞行器
+  随机 AES-128 会话密钥 K
+  随机 SM2 临时标量 k
+       │
+       ├─ C1 = kG
+       ├─ S  = kQ              （Q = AeroScope 接收端公钥）
+       └─ SM3 KDF 掩码 K
+              ↓
+         AA / CRYP
+              ↓  对应 SM2 私钥标量 d
+         会话密钥 K
+              ↓
+87 / INFP = AES-128-CTR(K, nonce8 || 0x00×8, telemetry)
 ```
 
-当前可采用以下统一术语：
+统一术语：
 
-| 实测字节/类型名 | 协议含义 |
+| 实测名称 | 协议角色 |
 |---|---|
-| `AA`，ASCII `CRYP` | SM2 封装的会话密钥包 |
-| `note` | 16 字节 AES 会话密钥 |
-| `87`，ASCII `INFP` | AES-CTR 加密的动态遥测包 |
-| `hashcode` | CRYP/INFP 同会话关联使用的 4 字节标识 |
+| `AA`、ASCII `CRYP` | SM2 封装随机 AES 会话密钥的报文 |
+| `note` | 16-byte AES 会话密钥 |
+| `87`、ASCII `INFP` | AES-CTR 加密动态遥测 |
+| `hashcode` / key identifier | 实测中用于关联 CRYP/INFP 的 4-byte 会话标识 |
 
-上述映射已在 `alphafox02/antsdr_dji_droneid` Issue #27 获得公开独立确认：CRYP 内含 SM2 封装的 session key，INFP 为对应 AES-CTR 加密遥测。同一讨论中也有人公开表示已经实现完整在线与离线解码，但其实现和密钥材料目前并未公开。
+关键公开确认：
 
-公开参考：
-
-- [协议确认：CRYP = SM2-wrapped session key，INFP = AES-CTR telemetry](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704860205)
-- [公开声明在线与离线完整链路均已解决](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704941726)
-- [进一步确认这里指完全解码后的遥测，而不是单纯 RF profiling](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5705619316)
+- [CRYP = SM2-wrapped session key；INFP = AES-CTR telemetry](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704860205)
+- [随机 session key + SM2 公钥封装的详细说明](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928617113)
+- [需要 SM2 私钥标量的完整 Python 参考解密器](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928889887)
+- [完整事实与证据索引](FACTS.zh-CN.md)
 
 ## 当前状态
 
 | 环节 | 状态 | 依据 |
 |---|---|---|
-| HackRF signed-int8 IQ 输入 | **已验证** | 实际录制与回放 |
-| 经典 O2 9-symbol OFDM / ZC600+147 | **已验证** | 相关、帧结构、CRC 恢复 |
-| O2 LTE Turbo transport | **已验证** | CRC24A 余数 = 0 |
-| O2 内层逻辑包 | **已验证** | DJI CRC16 余数 = 0 |
-| O4 AA/CRYP 与 87/INFP 逻辑包 | **已验证** | 双 CRC 有效样本 |
-| AA/CRYP 的 C1 位于标准 SM2 曲线 | **已验证** | 多个独立会话 |
-| AA/CRYP 的 `C1‖C3‖C2` 封装 | **已确认** | 本地结构 + 第三方公开确认 |
-| `note → 87/INFP` | **已验证** | AES-128-CTR 解出连续、合理遥测 |
-| `AA/CRYP → note` 的协议角色 | **已确认** | SM2-wrapped session key |
-| 无私钥条件下由本仓库本地执行 `AA/CRYP → note` | **尚不可用** | 需要对应私钥或等价 decryptor |
-| 第三方完整离线 O4 解码 | **已有公开声明** | 实现与密钥材料未公开 |
+| HackRF signed-int8 IQ 输入 | **本地已验证** | 实际录制与回放 |
+| 经典 O2 PHY/FEC/CRC | **本地已验证** | [解码器](src/o2_droneid_decode.py)、[Turbo 适配器](tools/remove_turbo_soft.c) |
+| O4 AA/CRYP 与 87/INFP 恢复 | **本地已验证** | 双 CRC 有效样本 |
+| CRYP 的 C1 位于 SM2 曲线，且符合 `C1‖C3‖C2` | **本地已验证 + 公开确认** | 本地检查 + [协议确认](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704860205) |
+| `note → INFP/87` AES-128-CTR | **本地已验证** | 连续合理遥测 |
+| 随机会话密钥 + SM2 封装模型 | **公开确认** | [Issue #1 纠正说明](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928617113) |
+| 给定正确 SM2 私钥后的完整解密器 | **已公开** | [参考代码](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928889887) |
+| 对应 SM2 private scalar | **未公开** | 当前引用资料中没有公开提取结果 |
+| 第三方完整离线 O4 解码 | **已有公开声明** | [online/offline resolved](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704941726)、[确认完整遥测](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5705619316) |
+| 把 Remote-ID `root_key/CMAC/RIDkey` 当成 O4 DroneID KDF | **已纠正 / 排除** | [Remote ID 纠正](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5929240147)、[DroneID 不使用该机制](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948725656) |
 
 ## 目前真正未公开的部分
 
-O4 的包结构和密码链现在已经基本明确。对于完全独立的离线解码器而言，剩余的实际障碍不再是 AES 层或 87/INFP 格式，而是 **SM2 解封能力本身**。
+算法链已经公开到可以实现的程度。标准路径下完全独立离线解码的实际缺口，是**对应 SM2 私钥标量或等价硬件 oracle**。
 
-目前公开资料中仍缺少：
+当前公开证据包括：
 
-- 对应的 SM2 私钥材料；
-- 商业/离线接收机如何配置、存储或保护该私钥；
-- O4/O4+ 是否共用一套密钥层级，还是存在多个 key ID；
-- 可公开复现的本地 CRYP decryptor；
-- 不依赖外部服务即可完成 `CRYP → session key` 的公开测试向量。
+- AeroScope 升级硬件包含带密钥材料的 USB 解密 dongle：[Aerial Defence / Edgesource 安全研究](https://www.aerial-defence.com/security-risks-of-the-aeroscope-upgrade-module-whitepaper/)。
+- dongle / TEE 通信路径已有公开安全研究：[Issue #1 资料指针](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928949673)。
+- EdwardBlair 将从 dongle 获取密钥材料描述为剩余的关键方向：[评论](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948750307)。
 
-本仓库**不声称 SM2 私钥本身已经被公开恢复**。
+本仓库**不声称 SM2 私钥已经被公开提取**。
+
+同时明确排除此前误区：`root_key → CMAC → RIDkey` 属于 **Remote ID / 遥控器内部遥测保护**，不是 OcuSync DroneID 的 CRYP/INFP 密钥链。详见 [FACTS.zh-CN.md](FACTS.zh-CN.md#3-已纠正remote-id-的-cmac-kdf-不是-ocusync-droneid)。
 
 ## 实测机型与发包行为
 
