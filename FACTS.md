@@ -148,6 +148,14 @@ Sources: [DragonSDR README](https://github.com/alphafox02/dragonsdr_dji_droneid)
 
 Important distinction: the existence of a private offline decoder establishes **implementation existence**, not a public reproducible key-recovery method.
 
+
+### Historical implementation clue: "<=100 candidates"
+
+EdwardBlair also stated in the older AntSDR discussion that, after inferring alphafox02 did not possess the key, he recognized the implementation approach and had reduced "that particular problem" to constant-time plus binary search over at most about 100 candidates, avoiding multi-second first-packet processing. The candidate object and algorithm were **not disclosed**. This statement therefore does **not** establish that SM2, the 256-bit private scalar, or the 128-bit AES session key has a ~100-element keyspace.
+
+Status: **PUBLIC-CLAIM / mechanism undisclosed**.  
+Source: [AntSDR Issue #27 comment](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5716952989).
+
 ## 8. O2/O3 scope
 
 - This repository has a reproducible classic O2 plaintext DroneID PHY/FEC chain.
