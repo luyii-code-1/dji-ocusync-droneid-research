@@ -146,6 +146,14 @@ DragonSDR/WarDragon 文档当前写明：O4 DroneID 在电机转动时广播，�
 
 必须区分：**私有离线解码器存在** ≠ **公开可复现的私钥恢复方法存在**。
 
+
+### 历史实现线索：“最多约 100 candidates”
+
+EdwardBlair 还曾在旧 AntSDR 讨论中表示：在判断 alphafox02 并没有相应 key 后，他知道对方采用的实现思路，并称自己已经把“那个特定问题”优化为 constant-time + binary search，候选数量最多约 100，从而避免首包需要数秒处理。**候选对象和具体算法没有公开**。因此这条评论不能被解释为“SM2 私钥只有约 100 个候选”“AES session key 只有约 100 个候选”或“SM2 被破解”。
+
+状态：**PUBLIC-CLAIM / 机制未公开**。  
+来源：[AntSDR Issue #27 评论](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5716952989)。
+
 ## 8. O2/O3 边界
 
 - 本仓库已经复现经典 O2 明文 DroneID PHY/FEC。
