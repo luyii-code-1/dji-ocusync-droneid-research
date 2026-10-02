@@ -1,78 +1,77 @@
 # DJI OcuSync DroneID Research
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | [Facts & evidence](FACTS.md)
 
 Reproducible DJI OcuSync DroneID PHY, packet, and cryptographic analysis based on raw HackRF IQ captures.
 
-**Updated 2026-09-17.** The O4 AA/87 cryptographic relationship is no longer treated here as a hypothesis. Local packet measurements, successful telemetry decryption, and independent public confirmation now establish the protocol role of the two packet families.
+**Updated 2026-10-02.** The repository now separates local reproduction from public third-party confirmation. The detailed claim-by-claim evidence ledger is in [FACTS.md](FACTS.md).
+
+The current O4 conclusion is: CRYP contains a **random AES-128 session key wrapped with SM2**, and INFP contains **AES-128-CTR encrypted DroneID telemetry**. A complete public reference decryptor now exists for the standard path once the corresponding 256-bit SM2 private scalar is supplied. The remaining non-public element is the relevant private key material / equivalent dongle capability, not the packet format or the AES layer.
 
 ## Confirmed result
 
-For the tested DJI Mini 5 Pro O4 implementation:
+For the O4 chain reproduced on Mini 5 Pro and independently confirmed in public discussion:
 
 ```text
-HackRF IQ
-  → ZC / OFDM / Turbo
-  → CRC24A + DJI CRC16
-  → logical packets
-
-AA / CRYP
-  → SM2-wrapped 16-byte session key (note)
-  → requires corresponding SM2 private key or equivalent decryptor
-
-87 / INFP
-  → AES-128-CTR
-  → key = note
-  → IV = nonce8 || 0x00 × 8
-  → SN / UUID / aircraft / pilot / home telemetry
+aircraft
+  random AES-128 session key K
+  random SM2 ephemeral scalar k
+       │
+       ├─ C1 = kG
+       ├─ S  = kQ              (Q = AeroScope recipient public key)
+       └─ SM3 KDF masks K
+              ↓
+         AA / CRYP
+              ↓  corresponding SM2 private scalar d
+         session key K
+              ↓
+87 / INFP = AES-128-CTR(K, nonce8 || 0x00×8, telemetry)
 ```
 
-The important terminology is now:
+Terminology:
 
-| Observed byte/type name | Protocol role |
+| Observed name | Role |
 |---|---|
-| `AA`, ASCII `CRYP` | SM2-wrapped session-key packet |
+| `AA`, ASCII `CRYP` | SM2-wrapped random AES session-key packet |
 | `note` | 16-byte AES session key |
 | `87`, ASCII `INFP` | AES-CTR-encrypted dynamic telemetry packet |
-| `hashcode` | 4-byte session association shared by matching CRYP/INFP packets |
+| `hashcode` / key identifier | 4-byte session association used to match CRYP and INFP in observed captures |
 
-This mapping was independently confirmed publicly in `alphafox02/antsdr_dji_droneid` Issue #27: CRYP contains the SM2-wrapped session key and INFP contains the corresponding AES-CTR-encrypted telemetry. The same discussion also states that complete online and offline decoding has been implemented privately, although that implementation and key material are not public.
+Key public confirmations:
 
-Public references:
-
-- [Protocol confirmation: CRYP = SM2-wrapped session key, INFP = AES-CTR telemetry](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704860205)
-- [Private implementation reports both online and offline decoding resolved](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704941726)
-- [Clarification that this means completely decoded telemetry](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5705619316)
+- [CRYP carries the SM2-wrapped session key; INFP is AES-CTR telemetry](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704860205)
+- [Detailed random-session-key + SM2 public-key construction](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928617113)
+- [Complete Python reference decryptor requiring the SM2 private scalar](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928889887)
+- [Full facts/evidence ledger](FACTS.md)
 
 ## Status
 
 | Stage | Status | Evidence |
 |---|---|---|
-| HackRF signed-int8 IQ input | **Verified** | Live capture and replay |
-| Classic O2 9-symbol OFDM / ZC600+147 | **Verified** | Correlation, frame structure, CRC recovery |
-| O2 LTE Turbo transport | **Verified** | CRC24A remainder = 0 |
-| O2 inner logical payload | **Verified** | DJI CRC16 remainder = 0 |
-| O4 AA/CRYP and 87/INFP logical packets | **Verified** | Double-CRC-valid captures |
-| AA/CRYP C1 point on standard SM2 curve | **Verified** | Multiple independent sessions |
-| AA/CRYP `C1‖C3‖C2` envelope | **Confirmed** | Local structure + independent public confirmation |
-| `note → 87/INFP` | **Verified** | AES-128-CTR gives coherent sequential telemetry |
-| `AA/CRYP → note` protocol role | **Confirmed** | SM2-wrapped session key |
-| Local `AA/CRYP → note` execution without private key | **Not available in this repository** | Requires the corresponding private key or equivalent decryptor |
-| Third-party complete offline O4 decode | **Publicly reported** | Implementation/key material not published |
+| HackRF signed-int8 IQ input | **LOCAL-VERIFIED** | Live capture and replay |
+| Classic O2 PHY/FEC/CRC chain | **LOCAL-VERIFIED** | [decoder](src/o2_droneid_decode.py), [Turbo adapter](tools/remove_turbo_soft.c) |
+| O4 AA/CRYP and 87/INFP recovery | **LOCAL-VERIFIED** | Double-CRC-valid captures |
+| CRYP C1 on the SM2 curve and `C1‖C3‖C2` envelope | **LOCAL-VERIFIED + PUBLIC-CONFIRMED** | Local checks + [protocol confirmation](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704860205) |
+| `note → INFP/87` AES-128-CTR | **LOCAL-VERIFIED** | Coherent sequential telemetry |
+| Random session-key + SM2 wrapping model | **PUBLIC-CONFIRMED** | [Issue #1 clarification](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928617113) |
+| Complete decryptor given the correct SM2 private scalar | **PUBLIC** | [reference code](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928889887) |
+| Relevant SM2 private scalar | **NOT PUBLIC** | No public extraction in cited sources |
+| Third-party complete offline O4 implementation | **PUBLICLY REPORTED** | [online/offline resolved](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704941726), [decoded telemetry confirmed](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5705619316) |
+| Remote-ID `root_key/CMAC/RIDkey` path as O4 DroneID key derivation | **CORRECTED / REJECTED** | [Remote ID correction](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5929240147), [DroneID does not use it](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948725656) |
 
 ## What remains non-public
 
-The protocol is now substantially understood. The remaining practical barrier to a fully independent offline decoder is not the AES layer or packet format; it is access to the SM2 unwrapping capability.
+The algorithmic chain is now public enough to implement. The remaining practical blocker for an independent standard-path offline decoder is the **corresponding SM2 private scalar or an equivalent hardware oracle**.
 
-The following are still non-public in the material available to this project:
+Public evidence currently supports:
 
-- the corresponding SM2 private key material;
-- how that key is provisioned or protected in commercial/offline receivers;
-- whether all O4/O4+ products share one key hierarchy or use multiple key IDs;
-- a public equivalent local CRYP decryptor;
-- reproducible public test vectors that perform `CRYP → session key` without an external service.
+- AeroScope's upgrade hardware contains a USB decryption dongle with key material: [Aerial Defence / Edgesource security research](https://www.aerial-defence.com/security-risks-of-the-aeroscope-upgrade-module-whitepaper/).
+- The dongle/TEE communication path has been publicly documented: [Issue #1 pointer](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928949673).
+- EdwardBlair describes material extraction from the dongle as the remaining key-material approach: [comment](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948750307).
 
-This repository does **not** claim that the private key itself has been publicly recovered.
+This repository does **not** claim that the private scalar has been publicly extracted.
+
+Also note the corrected dead-end: the previously discussed `root_key → CMAC → RIDkey` construction belongs to **Remote ID/internal controller telemetry protection**, not OcuSync DroneID. See [FACTS.md](FACTS.md#3-corrected-interpretation-remote-id-kdf-is-not-droneid).
 
 ## Tested aircraft and transmission behavior
 
@@ -314,12 +313,16 @@ decode.json
 
 ## Current research priorities
 
-- cross-validate CRYP/INFP layouts across Air 3/3S, Mini 4 Pro, Avata 2, Mavic 4 Pro, Inspire 3, and other O3/O4 platforms;
-- identify key IDs and public-key hierarchy across firmware generations;
-- determine whether Inspire 3 O3 uses the same CRYP/INFP cryptographic chain or only a related encrypted transport;
-- document the newer O4/O4+ PHY variants with double-CRC-valid end-to-end captures;
-- study legally obtained offline receivers and commercial modules at the interface/protocol level without publishing protected credentials;
+- independently validate the public SM2 reference decryptor against sanitized CRYP/INFP test vectors when lawful key access is available;
+- study the AeroScope upgrade dongle/TEE interface and public security research at the protocol/interface level;
+- cross-validate the O4/O4+ family claim across Air 3/3S, Mini 4 Pro, Avata 2, Mavic 4 Pro and enterprise models;
+- document O4 PHY variants with end-to-end CRC-valid captures;
+- determine the exact role of ZC root 147; current public discussion says root 600 alone is sufficient for O4 DroneID decoding;
+- publish sanitized evidence for the observed Inspire 3/O3 encrypted-DroneID case;
+- keep Remote ID KDF research separate from proprietary OcuSync DroneID;
 - expand synthetic tests and anonymized cross-model test vectors.
+
+See [FACTS.md](FACTS.md) for evidence status and exact citations.
 
 ## Publication and privacy
 
