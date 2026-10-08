@@ -69,7 +69,7 @@
 当前公开证据包括：
 
 - AeroScope 升级硬件包含带密钥材料的 USB 解密 dongle：[Aerial Defence / Edgesource 安全研究](https://www.aerial-defence.com/security-risks-of-the-aeroscope-upgrade-module-whitepaper/)。
-- Edgesource 的 [2024 年白皮书 §1.5–1.6 / Figure 3–6](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf) 展示了拆解后的定制 USB Hub 与取下的处理器，也描述了 AeroScope ↔ dongle 的认证及加密通信；**不能据此认定 dongle 使用 TEE**。[Issue #1 所附照片](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5944688781) 源于 2024 年研究，不能证明 2026 年又发生了新拆机。
+- Edgesource 的 [2024 年白皮书 §1.5–1.6 / Figure 3–6](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf) 展示了拆解后的定制 USB Hub 与取下的处理器，也描述了 AeroScope ↔ dongle 的认证及加密通信；**不能据此认定 dongle 使用 TEE**。[Issue #1 所附照片](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5944688781) 虽与既有拆解结构一致，但仅凭图片不能确定拍摄时间及来源，更不能证明评论者于 2026 年亲自拆机。
 - 必须区分 **AeroScope ↔ dongle 的通信 session key** 与 **飞行器 DroneID 的 session key**：后者由 dongle 从 CRYP 中解封并返回主机，用来解密 INFP。[Edgesource 2024，Figure 5–6](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf)。
 - EdwardBlair 将从 dongle 获取密钥材料描述为剩余的关键方向：[评论](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948750307)。
 
