@@ -124,6 +124,34 @@ python3 src/o4_packet_tool.py --note '<16-byte-note-hex>' '<complete-87-hex>'
 
 The current public tool intentionally covers packet validation and the known-session-key AES step. It does not contain DJI/private commercial SM2 key material.
 
+## HackRF scan frequency presets and hopping research
+
+[Issue #2: Known DroneID frequencies](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/2) identified a missing **5816.5 MHz** receiver frequency. The scan code now offers **three documented frequency presets**, while retaining the original 2.4 GHz scan order and the existing custom `--freqs` override.
+
+| `--preset` | Meaning | 2.4 / 5.8 GHz entries |
+|---|---|---|
+| `baseline` (default) | Previous repository scan order, now with 5816.5 MHz added to 5.8 GHz | 5 / 4 |
+| `issue2` | King-Of-Knights' reported frequency list | 4 / 4 |
+| `paper2022` | Bender's 2022 Table II, distinct entries only; **historical**, not an O4 frequency map | 5 / 7 |
+
+```bash
+# Passive 5.8 GHz scanning, including the newly added 5816.5 MHz
+python3 src/droneid_hackrf_scanner.py --band 5g --preset baseline
+
+# Use the separate Issue #2 frequency list on both bands
+python3 src/droneid_hackrf_scanner.py --band both --preset issue2
+
+# Compare against historical frequencies or force a custom centre frequency
+python3 src/droneid_hackrf_scanner.py --band both --preset paper2022
+python3 src/droneid_hackrf_scanner.py --freqs 2474.5
+```
+
+The 2022 paper's **2.4 GHz upper bound of 2474.5 MHz is prose-only**: its Table II instead repeats 2459.5 MHz. It is therefore not silently included in `paper2022`. In all cases `--freqs` overrides `--preset` and `--band`.
+
+**Hopping evidence must stay model-scoped:** Mavic 2/Mini 2 measurements report ~640 ms transmissions in trains of 13 per frequency, whereas EdwardBlair describes a *newer/O4* 8-bit publication counter, modulo-256-before-modulo-seven lookup, and a 163.84 s supercycle. The seven-lane lookup contents and a validated receive-only follower have **not** been published in the cited comment. The scanner **does not implement phase following**, and `--dwell 0.80` should not be interpreted as hop synchronization.
+
+See [FACTS.md](FACTS.md) for per-model data, exact primary citations, and caveats. Do not merge the legacy/historical and newer/O4 lists into a supposedly universal frequency table.
+
 ## Packet relationship
 
 Matching packets share the same session hash:
