@@ -146,6 +146,50 @@ Evidence: [classic decoder](src/o2_droneid_decode.py), [Turbo adapter](tools/rem
 
 The repository should not state that every O4 frame uses one universal shell until cross-model/firmware captures establish that.
 
+## 5a. DroneID frequency raster and hopping: do not mix model generations
+
+**Source scope.** These are *observed, cited candidate frequencies*, not a universal or regulatory channel plan. No source here establishes a complete list for every firmware, aircraft or region.
+
+| Evidence / scope | 2.4 GHz centre frequencies (MHz) | 5.8 GHz centre frequencies (MHz) | Evidence grade |
+|---|---|---|---|
+| Repository scanner **baseline** (original order preserved, now including missing 5816.5) | 2444.5, 2429.5, 2414.5, 2459.5, 2399.5 | 5756.5, 5776.5, 5796.5, **5816.5** | **CODE DEFAULT + REPORTED EXTENSION**, not exhaustive |
+| `issue2` preset: King-Of-Knights' published list | 2414.5, 2429.5, 2444.5, 2459.5 | 5756.5, 5776.5, 5796.5, 5816.5 | **THIRD-PARTY REPORTED** [Issue #2 comment](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/2#issuecomment-6040337127); author of Issue #2 separately reports 5816.5 on Mavic 2 |
+| `paper2022` preset: Bender 2022, Table II | 2399.5, 2414.5, 2429.5, 2444.5, 2459.5 | 5741.5, 5756.5, 5771.5, 5786.5, 5801.5, 5816.5, 5831.5 | **HISTORICAL PUBLISHED TABLE**, not an O4-specific list |
+
+**2022 source inconsistency:** the paper's prose says the 2.4 GHz range reaches **2474.5 MHz**, but Table II *repeats 2459.5 MHz* in its last 2.4 GHz row. The `paper2022` preset preserves the **distinct, unambiguous table entries**; 2474.5 MHz is a **prose-only candidate**, selectable manually with `--freqs` for research, not silently added as a confirmed channel. The 2022 5.8 GHz table uses **15 MHz spacing**, while the 2026 Issue #2 5.8 GHz list uses **20 MHz spacing**. These sources should not be merged or treated as proof of firmware evolution without matched captures. Source: [Bender, *DJI drone IDs are not encrypted*, §III / Table II (https://arxiv.org/pdf/2207.10795)](https://arxiv.org/pdf/2207.10795).
+
+### Hopping results by generation — different, non-interchangeable claims
+
+| Airframe / source | Reported behavior | Limits |
+|---|---|---|
+| **Mavic 2**, frbarcio's bench capture | 13 bursts at one frequency, separated by ~640 ms; 32 frequency slots; observed ~266.24-second sequence `22217401 24625344 74630351 02657265`, with channel indices 0–7 ordered by increasing frequency | **THIRD-PARTY OBSERVATION** — for the reported Mavic 2 setup, not verified O4 schedule. [Original comment](https://github.com/proto17/dji_droneid/issues/60#issuecomment-5834208418) |
+| **Mini 2**, King-Of-Knights' anechoic-chamber report | More than 9,000 consecutive-sequence-number packets examined; 640 ms period, 13 packets per frequency slot; reported sequence unchanged by reboot under those tests | **THIRD-PARTY OBSERVATION** — differs from Mavic 2; exact sequence was posted as an image and not reproduced as text here. [Original comment](https://github.com/proto17/dji_droneid/issues/60#issuecomment-5971878188); [comparison](https://github.com/proto17/dji_droneid/issues/60#issuecomment-5994521538) |
+| **Newer/O4 mechanism**, EdwardBlair's reverse-engineering statement | Increasing **8-bit publication counter**, with **fixed seven-lane lookup**; wrap the counter modulo 256 *before* the modulo-seven lookup. At 640 ms per publication, **256 × 0.640 s = 163.84 s** supercycle. | **ATTRIBUTED PUBLIC TECHNICAL CLAIM** — lookup contents, carrier mapping and receive-only follower code were **not published in that comment**. Seven lookup lanes must **not** be equated to seven known RF centre frequencies. He explicitly cautions against applying the older Mini 2/Mavic 2 data to O4. [Exact comment](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6056885076) |
+
+A follower cannot identify an aircraft from its hopping phase alone; matching concurrent CRYP/INFP sessions needs CRC/integrity-valid session association. The proposed receive-only follower was described as future work, not as released code in the cited discussion. Its correct implementation still requires the actual lookup mapping, acquisition logic and independently verified test captures. [EdwardBlair](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6056885076).
+
+**Control link vs DroneID band:** the 2022 paper reports that forcing the OcuSync control/downlink band does not force DroneID into the same band. [King-Of-Knights](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6062814244) and [EdwardBlair](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6062938322) reiterated independent 2.4/5.8 GHz hopping. The [repository owner's Mini 2 report](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6062975703) of an improved 2444.5 MHz capture rate when selecting 5.8 GHz for the control link is an *environment-/interference-dependent observation*, not evidence that the DroneID raster is locked to the control-link setting.
+
+### Scanner configuration and limitations
+
+`src/droneid_hackrf_scanner.py` remains a **sequential dwell scanner**, not a counter-phase follower. It defaults to `--band 2g --preset baseline --dwell 0.80`; `--freqs` overrides both the preset and selected band.
+
+```bash
+# Existing 2.4 GHz behavior stays the default; 5.8 GHz includes 5816.5 MHz
+python3 src/droneid_hackrf_scanner.py --band 5g --preset baseline
+
+# The four-plus-four frequencies reported in Issue #2
+python3 src/droneid_hackrf_scanner.py --band both --preset issue2
+
+# Historical 2022 table entries — research comparison only
+python3 src/droneid_hackrf_scanner.py --band both --preset paper2022
+
+# Prose-only 2474.5 MHz candidate; manually scoped capture
+python3 src/droneid_hackrf_scanner.py --freqs 2474.5
+```
+
+Longer lists and retuning can substantially reduce observation time at any one frequency; `--dwell 0.80` is a **capture-window setting**, not evidence of synchronization to the 640 ms publication clock. Model, firmware, country and SN dependencies in hopping are still unresolved. [Issue #2](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/2), [follow-on research thread](https://github.com/proto17/dji_droneid/issues/60).
+
 ## 6. Transmission behavior
 
 ### Mini 5 Pro
