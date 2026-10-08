@@ -61,7 +61,7 @@ This repository **does not claim that the SM2 private scalar has been publicly e
 
 ## 2a. AeroScope upgrade module: physical evidence and key separation
 
-**2024 hardware evidence (not a new 2026 teardown).** Edgesource's March 2024 *Security Risks of the AeroScope Upgrade Module* shows an internal custom USB hub and the module's internal processor removed from the assembly (Figure 3: USB hub front/back; Figure 4: processor). The photograph shared in [King-Of-Knights's 2026 Issue #1 comment](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5944688781) is the previously published Edgesource photograph. Reposting it is **not** evidence that the commenter personally disassembled a dongle or recovered its key.
+**2024 hardware evidence (not a new 2026 teardown).** Edgesource's March 2024 *Security Risks of the AeroScope Upgrade Module* shows an internal custom USB hub and the module's internal processor removed from the assembly (Figure 3: USB hub front/back; Figure 4: processor). The photograph attached to [King-Of-Knights's 2026 Issue #1 comment](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5944688781) shows matching USB-hub / removed-component features and carries Aerial Defence branding, but its provenance and capture date are not established by the comment. The image alone is **not** evidence that the commenter personally disassembled a dongle or recovered its key.
 
 Source: [Original March 2024 paper, §1.5, pp. 9–10 / Figures 3–4](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf).
 
