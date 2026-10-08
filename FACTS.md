@@ -2,7 +2,7 @@
 
 [English](FACTS.md) | [简体中文](FACTS.zh-CN.md)
 
-**Last reviewed: 2026-10-02**
+**Last reviewed: 2026-10-08**
 
 This document separates **locally reproduced facts**, **independent public confirmations**, **third-party implementation claims**, **corrected/red-herring paths**, and **open questions**. A cited discussion claim is not treated as equivalent to a locally reproducible result.
 
@@ -55,9 +55,35 @@ Here `Q` is the recipient/AeroScope public key and `d` is the corresponding priv
 | The corresponding SM2 private key itself is not published in this repository or in the cited public discussion. | **OPEN** | [Cross-validation thread](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1) |
 | AeroScope's upgrade hardware includes a USB decryption dongle containing key material. | **PUBLIC-CONFIRMED** | [Aerial Defence / Edgesource whitepaper page](https://www.aerial-defence.com/security-risks-of-the-aeroscope-upgrade-module-whitepaper/) |
 | Public discussion points to the AeroScope dongle as the remaining key-material target for a fully independent implementation. | **PUBLIC-CLAIM** | [EdwardBlair: material extraction from the dongle is the remaining approach](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948750307) |
-| The dongle/TEE communication path is documented by the 2024 AeroScope Upgrade Module security research. | **PUBLIC-CONFIRMED** | [Pointer in Issue #1](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928949673), [whitepaper page](https://www.aerial-defence.com/security-risks-of-the-aeroscope-upgrade-module-whitepaper/) |
+| The 2024 whitepaper describes the AeroScope ↔ dongle authentication, transport session key, and CRYP key-unwrapping workflow. It does **not** establish that the dongle uses a TEE. | **PUBLIC-CONFIRMED (published description)** | [Edgesource whitepaper, pp. 10–12](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf), [Issue #1 reference](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928949673) |
 
 This repository **does not claim that the SM2 private scalar has been publicly extracted**.
+
+## 2a. AeroScope upgrade module: physical evidence and key separation
+
+**2024 hardware evidence (not a new 2026 teardown).** Edgesource's March 2024 *Security Risks of the AeroScope Upgrade Module* shows an internal custom USB hub and the module's internal processor removed from the assembly (Figure 3: USB hub front/back; Figure 4: processor). The photograph shared in [King-Of-Knights's 2026 Issue #1 comment](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5944688781) is the previously published Edgesource photograph. Reposting it is **not** evidence that the commenter personally disassembled a dongle or recovered its key.
+
+Source: [Original March 2024 paper, §1.5, pp. 9–10 / Figures 3–4](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf).
+
+**Two different session keys — do not conflate them:**
+
+1. **AeroScope–dongle transport session key.** After a multi-step authentication and adapted public-key exchange, it protects communication between the AeroScope host and the dongle. This is Figure 5 and §1.6 of the paper.
+2. **Aircraft DroneID session key.** The aircraft puts an encrypted session key in CRYP; AeroScope forwards CRYP to the dongle and receives the unwrapped aircraft session key, associates it with the key hash, and uses it to decrypt later INFP packets. This is Figure 6 and §1.6 of the paper.
+
+Source: [Edgesource 2024 paper, §1.6, pp. 10–12 / Figures 5–6](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf).
+
+The paper describes a physically protected processor and a dongle authentication/encryption design; it **does not publish** the relevant SM2 private scalar, an independently reproducible key extraction, or proof of a TEE implementation. The paper mentions a more detailed *Technical Addendum* intended for approved audiences; do not treat that addendum as publicly available without a verified link. Source: [whitepaper abstract and footnote](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf).
+
+## 2b. October 2026: hardware-oracle demonstration, key claims, and a proposed test corpus
+
+| Event / exact claim | Evidence grade | Primary citation |
+|---|---|---|
+| King-Of-Knights posted a console transcript **claiming direct control of an AeroScope dongle**: CRYP/AA (or A3) input produced a 16-byte aircraft session key; matching INFP/87 (or 80) decrypted into coherent telemetry. The dongle command protocol and `dji_dongle_decrypt.py` source were **not** provided. | **PUBLIC DEMONSTRATION (transcript); not independently reproducible from the post** | [Issue #1 demo](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456) |
+| TheOldCode wrote that they could **provide an O4 decryption key**, without specifying whether this means the corresponding SM2 private scalar, dongle access, or some other capability. No public key material or independent proof appears in the cited comment. | **PUBLIC-CLAIM, UNVERIFIED** | [proto17/dji_droneid #63](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721) |
+| King-Of-Knights reported meeting at least three parties offering an offline decryption algorithm during the week; this is an account of offers, **not three proven independent extractions**. | **PUBLIC-CLAIM, UNVERIFIED** | [Issue #1 statement](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062489107) |
+| EdwardBlair offered a **test corpus** intended to distinguish (1) dongle-mediated decryption, (2) possession of the private key, and (3) another mechanism. The comment offers the corpus; it does not document a completed public validation of any vendor. | **PUBLIC TEST PROPOSAL, NOT YET A RESULT** | [Issue #1 comment](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062814886) |
+
+**Current boundary:** a public protocol/reference decryptor and a third-party hardware-oracle transcript exist, and key possession is publicly **claimed**. A published, independently verified AeroScope SM2 private-scalar extraction and fully reproducible dongle-free decoder are **not established by these sources**.
 
 ## 3. Corrected interpretation: Remote ID KDF is not DroneID
 
@@ -224,6 +250,10 @@ Current receiver ecosystem:
 AeroScope dongle:
 
 - [Aerial Defence: Security Risks of the AeroScope Upgrade Module](https://www.aerial-defence.com/security-risks-of-the-aeroscope-upgrade-module-whitepaper/)
+- [Edgesource March 2024 whitepaper PDF — Figures 3–6](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf)
+- [Issue #1 hardware-oracle demonstration](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456)
+- [Issue #1 proposed three-way test corpus](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062814886)
+- [Unverified O4 key provision claim (proto17 #63)](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721)
 
 Local reproducible code:
 
