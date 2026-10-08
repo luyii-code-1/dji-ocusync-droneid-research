@@ -2,7 +2,7 @@
 
 [English](FACTS.md) | [简体中文](FACTS.zh-CN.md)
 
-**最后核对：2026-10-02**
+**最后核对：2026-10-08**
 
 本文把当前信息严格分成：**本仓库可复现实测、第三方公开确认、第三方实现声明、已纠正/排除的路径、仍未解决的问题**。GitHub 评论中的公开说法不会自动等同于本仓库已经独立复现。
 
@@ -55,9 +55,35 @@
 | 对应 SM2 私钥本身没有在本仓库或上述公开讨论中发布。 | **未解决** | [Issue #1](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1) |
 | AeroScope 升级硬件包含 USB 解密 dongle，公开安全研究称其中包含密钥。 | **公开确认** | [Aerial Defence / Edgesource 白皮书页面](https://www.aerial-defence.com/security-risks-of-the-aeroscope-upgrade-module-whitepaper/) |
 | 最新公开讨论将“从 dongle 获得密钥材料”指向为独立完整实现剩余的关键方向。 | **公开声明** | [EdwardBlair：material extraction from the dongle](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948750307) |
-| AeroScope dongle 与 TEE 的通信路径已有 2024 年公开安全研究。 | **公开确认** | [Issue #1 中的资料指针](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928949673)、[白皮书页面](https://www.aerial-defence.com/security-risks-of-the-aeroscope-upgrade-module-whitepaper/) |
+| 2024 年白皮书描述了 AeroScope 与 dongle 的认证、通信会话密钥和 CRYP 解封流程；**没有证明 dongle 内部采用 TEE**。 | **公开确认（文献描述）** | [Edgesource 白皮书第 10–12 页](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf)、[Issue #1 资料指针](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928949673) |
 
 本仓库**不声称 SM2 私钥已经被公开提取**。
+
+## 2a. AeroScope 升级模块：拆解证据及两种会话密钥
+
+**2024 年已有的硬件拆解，并非 2026 年新拆机。** Edgesource 2024 年 3 月发布的 *Security Risks of the AeroScope Upgrade Module* 展示了定制 USB Hub 扩展板，以及从模块移出的内部处理器（Figure 3：Hub 正反面；Figure 4：处理器）。[King-Of-Knights 于 2026 年转贴的图片](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5944688781) 源于这份更早的公开研究，**不能据此断言该评论者亲自完成拆机或取得私钥**。
+
+来源：[Edgesource 2024 年原文 §1.5，第 9–10 页及 Figure 3/4](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf)。
+
+**必须区分两种不同的 session key：**
+
+1. **AeroScope ↔ dongle 通信会话密钥：** 主机和 dongle 经多步认证/密钥交换建立，用来保护两者之间的传输；见白皮书 §1.6、Figure 5。
+2. **飞行器 DroneID 会话密钥：** 飞行器将其加密封装在 CRYP 中；AeroScope 转发 CRYP 给 dongle，后者返回解封后的飞机会话密钥；主机按 key hash 关联该 key，再解密后续 INFP；见 §1.6、Figure 6。
+
+来源：[Edgesource 2024 白皮书第 10–12 页](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf)。
+
+论文公开描述了受硬件保护的处理器、加密狗认证及解封流程，但**没有公布 SM2 private scalar、可复现私钥提取结果，也没有充分证实该器件采用 TEE**。论文提到计划面向获准对象提供更详细的 *Technical Addendum*；在取得可核对的公开副本前不能将其当作已公开资料。[原文摘要及脚注](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf)。
+
+## 2b. 2026 年 10 月：加密狗调用、密钥声明与验证语料
+
+| 进展/原话范围 | 证据等级 | 精确来源 |
+|---|---|---|
+| King-Of-Knights 公布控制台输出，**声称成功调用真实 AeroScope dongle**：输入 CRYP/AA（或 A3）后得到 16-byte 飞机 session key，并据此把同会话 INFP/87（或 80）解成连续遥测。未公开 `dji_dongle_decrypt.py` 源码和 dongle 的命令/USB 协议。 | **公开运行演示（日志），尚不可独立复现** | [Issue #1 演示](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456) |
+| TheOldCode 表示可以提供 “O4 decryption key”，**但未说明究竟是 SM2 private scalar、dongle 能力还是其他机制**；所引评论没有密钥或独立校验证据。 | **第三方声明，未验证** | [proto17/dji_droneid #63](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721) |
+| King-Of-Knights 表示一周内接触到至少三方销售离线解密算法；属于**报价/供给线索**，不是三次已验证的私钥提取。 | **第三方声明，未验证** | [Issue #1 回复](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062489107) |
+| EdwardBlair 提出可以提供**测试语料**，以较高可信度区分① dongle 解密、② 真正持有私钥、③ 其他机制。该评论仅提出验证方案，**没有证明任何提供方已经通过测试**。 | **公开验证方案，尚无测试结果** | [Issue #1 回复](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062814886) |
+
+**当前边界：** 已有公开协议/参考解密器、第三方 dongle 调用日志及密钥持有声明；但以上资料**仍不能证明 SM2 私钥已被公开、独立验证提取，也不能证明脱离 dongle 的完整软件解码已可复现**。
 
 ## 3. 已纠正：Remote ID 的 CMAC KDF 不是 OcuSync DroneID
 
@@ -222,6 +248,10 @@ INFP:
 AeroScope dongle：
 
 - [Aerial Defence：Security Risks of the AeroScope Upgrade Module](https://www.aerial-defence.com/security-risks-of-the-aeroscope-upgrade-module-whitepaper/)
+- [Edgesource 2024 原始白皮书 PDF（图 3–6）](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf)
+- [Issue #1 dongle 调用演示](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456)
+- [Issue #1 三类解密机制测试语料提议](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062814886)
+- [proto17 #63 O4 密钥提供声明（未验证）](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721)
 
 本仓库可复现代码：
 
