@@ -124,6 +124,34 @@ python3 src/o4_packet_tool.py --note '<16-byte-note-hex>' '<87完整Hex>'
 
 当前公开工具覆盖逻辑包检查以及“已知会话密钥 → AES 解密”的可复现部分，不包含 DJI 或任何第三方商业实现所持有的私钥材料。
 
+## HackRF 扫描频点预设与跳频研究
+
+[Issue #2：Known DroneID frequencies](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/2) 指出扫描器遗漏了 **5816.5 MHz**。目前已补全，并新增三个**来源明确的频点预设**；原 2.4 GHz 默认顺序和 `--freqs` 手动覆盖能力保持不变。
+
+| `--preset` | 含义 | 2.4 / 5.8 GHz 频点数 |
+|---|---|---|
+| `baseline`（默认） | 原仓库扫描顺序，5.8 GHz 增补 5816.5 MHz | 5 / 4 |
+| `issue2` | King-Of-Knights 在 Issue #2 报告的频点 | 4 / 4 |
+| `paper2022` | Bender 2022 论文 Table II 中**不重复的明确频点**；属于历史记录，不是 O4 全集 | 5 / 7 |
+
+```bash
+# 被动扫描 5.8 GHz，已包括 5816.5 MHz
+python3 src/droneid_hackrf_scanner.py --band 5g --preset baseline
+
+# Issue #2 所列 4+4 频点
+python3 src/droneid_hackrf_scanner.py --band both --preset issue2
+
+# 旧论文频点或手动指定单频
+python3 src/droneid_hackrf_scanner.py --band both --preset paper2022
+python3 src/droneid_hackrf_scanner.py --freqs 2474.5
+```
+
+2022 年论文正文写到 2.4 GHz 上限 **2474.5 MHz**，但 Table II 最后一行却重复 **2459.5 MHz**；因此 `paper2022` 不擅自把 2474.5 当作已验证的表格数据。指定 `--freqs` 时覆盖 `--preset` 和 `--band`。
+
+**跳频规律必须限定适用机型：** Mavic 2/Mini 2 的公开测试报告为约 640 ms 发包间隔、同频 13 包；EdwardBlair 对**新一代/O4**提出 8-bit publication counter、先 `mod 256` 再 `mod 7` 查表、163.84 s 超周期的机制。**查找表内容和可复现的 receive-only follower 未在引文中公开。** 目前扫描器仍是普通驻留轮询，不具备跳频相位跟踪，`--dwell 0.80` 也不代表同步了 640 ms 发包周期。
+
+具体型号差异、逐条证据和来源见 [FACTS.zh-CN.md](FACTS.zh-CN.md)，不要把旧机型频点和 O4 机制强行合并为通用列表。
+
 ## 会话关系
 
 同一会话的报文共享 hash：
