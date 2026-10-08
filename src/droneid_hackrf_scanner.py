@@ -32,6 +32,9 @@ from scipy.signal import fftconvolve, find_peaks
 import o2_droneid_decode as o2
 
 
+# Baseline scan order is intentionally preserved for existing 2.4 GHz users.
+# The additional 5816.5 MHz 5.8 GHz channel was reported for Mavic 2 and
+# independently included in the published list in project Issue #2.
 FREQUENCIES_2G = [
     2_444_500_000,
     2_429_500_000,
@@ -39,7 +42,59 @@ FREQUENCIES_2G = [
     2_459_500_000,
     2_399_500_000,
 ]
-FREQUENCIES_5G = [5_756_500_000, 5_776_500_000, 5_796_500_000]
+FREQUENCIES_5G = [
+    5_756_500_000,
+    5_776_500_000,
+    5_796_500_000,
+    5_816_500_000,
+]
+
+# Source: https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/2#issuecomment-6040337127
+# This is a reported frequency list, not a proven exhaustive O4 raster.
+FREQUENCIES_ISSUE2_2G = [
+    2_414_500_000,
+    2_429_500_000,
+    2_444_500_000,
+    2_459_500_000,
+]
+FREQUENCIES_ISSUE2_5G = [
+    5_756_500_000,
+    5_776_500_000,
+    5_796_500_000,
+    5_816_500_000,
+]
+
+# Source: Bender (2022), arXiv:2207.10795, Table II.
+# The 2.4 GHz table duplicates 2459.5 MHz although the prose says the band
+# extends to 2474.5 MHz. Follow the unambiguous table entries here; 2474.5
+# remains a manually selectable candidate via --freqs, not a verified entry.
+FREQUENCIES_PAPER2022_2G = [
+    2_399_500_000,
+    2_414_500_000,
+    2_429_500_000,
+    2_444_500_000,
+    2_459_500_000,
+]
+FREQUENCIES_PAPER2022_5G = [
+    5_741_500_000,
+    5_756_500_000,
+    5_771_500_000,
+    5_786_500_000,
+    5_801_500_000,
+    5_816_500_000,
+    5_831_500_000,
+]
+
+# Presets select *where to listen*, not an established hopping schedule.
+# Detection is still a sequential, receive-only dwell scanner.
+FREQUENCY_PRESETS = {
+    "baseline": {"2g": FREQUENCIES_2G, "5g": FREQUENCIES_5G},
+    "issue2": {"2g": FREQUENCIES_ISSUE2_2G, "5g": FREQUENCIES_ISSUE2_5G},
+    "paper2022": {
+        "2g": FREQUENCIES_PAPER2022_2G,
+        "5g": FREQUENCIES_PAPER2022_5G,
+    },
+}
 PRODUCT_NAMES = {63: "DJI Mini 2"}
 
 
@@ -450,12 +505,14 @@ class DetectorWorker(threading.Thread):
 def select_frequencies(args: argparse.Namespace) -> list[int]:
     if args.freqs:
         frequencies = [parse_frequency(item) for item in args.freqs.split(",")]
-    elif args.band == "2g":
-        frequencies = FREQUENCIES_2G
-    elif args.band == "5g":
-        frequencies = FREQUENCIES_5G
     else:
-        frequencies = FREQUENCIES_2G + FREQUENCIES_5G
+        preset = FREQUENCY_PRESETS[getattr(args, "preset", "baseline")]
+        if args.band == "2g":
+            frequencies = preset["2g"]
+        elif args.band == "5g":
+            frequencies = preset["5g"]
+        else:
+            frequencies = preset["2g"] + preset["5g"]
     if not frequencies:
         raise ValueError("frequency list is empty")
     return frequencies
@@ -539,7 +596,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Real-time HackRF DJI DroneID scanner and O2/O3 decoder")
     parser.add_argument("--band", choices=["2g", "5g", "both"], default="2g")
-    parser.add_argument("--freqs", help="comma-separated Hz or MHz override")
+    parser.add_argument("--preset", choices=tuple(FREQUENCY_PRESETS),
+                        default="baseline",
+                        help="frequency list: baseline (default), issue2, paper2022")
+    parser.add_argument("--freqs", help="comma-separated Hz or MHz override (ignores --preset/--band)")
     parser.add_argument("--dwell", type=float, default=0.80,
                         help="seconds captured at each frequency (default: 0.80)")
     parser.add_argument("--settle", type=float, default=0.030,
