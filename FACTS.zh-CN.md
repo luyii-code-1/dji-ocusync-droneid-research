@@ -146,6 +146,50 @@ validation        CRC24A + DJI CRC16
 
 在没有更多跨机型/固件双 CRC 样本前，不应把某一种 O4 PHY shell 写成全系列唯一结构。
 
+## 5a. DroneID 频点与跳频：按机型代际严格区分
+
+**证据边界：** 以下是不同来源报告的候选中心频点，不代表所有机型、地区或固件的完整频点表，更不等于统一的跳频序列。
+
+| 数据集/适用范围 | 2.4 GHz 中心频点（MHz） | 5.8 GHz 中心频点（MHz） | 证据等级 |
+|---|---|---|---|
+| 扫描器 **baseline**：保留旧默认顺序，补充 5816.5 | 2444.5、2429.5、2414.5、2459.5、2399.5 | 5756.5、5776.5、5796.5、**5816.5** | **代码默认配置 + 新增社区报告频道**，非全集 |
+| **issue2**：King-Of-Knights 列出的频点 | 2414.5、2429.5、2444.5、2459.5 | 5756.5、5776.5、5796.5、5816.5 | **第三方公开报告**，[Issue #2 回复](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/2#issuecomment-6040337127)；Issue 作者另在 Mavic 2 上观察到 5816.5 |
+| **paper2022**：Bender 2022 论文 Table II | 2399.5、2414.5、2429.5、2444.5、2459.5 | 5741.5、5756.5、5771.5、5786.5、5801.5、5816.5、5831.5 | **历史论文表格**，不能直接作为 O4 实测频点 |
+
+**2022 论文内部有一处不一致：** 正文称 2.4 GHz 范围达到 **2474.5 MHz**，但 Table II 中最后一行却**重复写了 2459.5 MHz**。因此 `paper2022` 预设只采用表格中**明确且不重复**的数值；2474.5 MHz 目前只作为**正文提到的待核查候选**，可通过 `--freqs` 单独测试，不能无依据地改写成已证实的表格频点。历史论文 5.8 GHz 频点相隔 **15 MHz**，而 2026 年 Issue #2 给出的 5.8 GHz 频点相隔 **20 MHz**；不能把两组混成一张“适用于所有 O2/O4 的表”。来源：[Bender, *DJI drone IDs are not encrypted* §III / Table II](https://arxiv.org/pdf/2207.10795)。
+
+### 不同代际的跳频研究：不能交叉套用
+
+| 机型/来源 | 公开结论 | 证据边界 |
+|---|---|---|
+| **Mavic 2**：frbarcio 台架实测 | 每个频点连续发 **13 包**，间隔约 **640 ms**；观察到 **32 个频点槽位**和约 **266.24 s** 的序列 `22217401 24625344 74630351 02657265`，数字 0–7 是按频率从低到高的频道编号 | **第三方机型实测**；不能外推为 O4 的跳频表。[原始评论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-5834208418) |
+| **Mini 2**：King-Of-Knights 暗室连续采样 | 声称分析了 **9000+** 个连续序号 DroneID；发包周期 **640 ms**、同频连续 **13 包**，其测试中的序列不受重启影响 | **第三方机型实测**；与 Mavic 2 序列不同。序列表以截图形式发布，本文不臆造其文本。[原始评论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-5971878188)、[差异讨论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-5994521538) |
+| **新一代/O4**：EdwardBlair 的逆向说明 | 由递增的 **8-bit publication counter** 与固定 **seven-lane lookup** 驱动；计数器先 `mod 256`，再进行 `mod 7` 查表。按每次 **640 ms** 计，超周期为 **256 × 0.640 = 163.84 s** | **注明来源的公开技术主张**。具体查找表、频率映射及 receive-only follower 实现**未在该评论中公开**。“七路查找表”不等于“总共只有七个 RF 中心频点”。作者明确警告旧 Mini 2/Mavic 2 规律不能直接套到 O4。[原始评论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6056885076) |
+
+**需要保留的实现边界：** 即使知道跳频相位，也不能仅凭相位认定是哪架飞机；必须通过 CRC/完整性有效的会话字段区分并发 CRYP/INFP。EdwardBlair 当时表示**计划**发布 receive-only follower，不等于已经公开代码。复现仍需要查找表、相位捕获方法、跨机型抓包。来源：[评论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6056885076)。
+
+**图传链路频段设置 ≠ DroneID 频段锁定：** 2022 论文指出指定 OcuSync 图传频段并不能约束 DroneID 跳频。[King-Of-Knights](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6062814244)、[EdwardBlair](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6062938322) 也确认两套频段独立。[本仓库作者的 Mini 2 观察](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6062975703) 是“图传强制 5.8 GHz 后，2444.5 MHz DroneID 在当时实验条件下更易抓到”，可能与干扰环境有关，**不能推导 DroneID 本身切换到指定频段**。
+
+### HackRF 扫描器配置
+
+`src/droneid_hackrf_scanner.py` 目前仍然是**逐频点驻留扫描器**，没有实现 8-bit counter 相位跟踪。默认仍为 `--band 2g --preset baseline --dwell 0.80`；明确传入 `--freqs` 时覆盖预设和频段选择。
+
+```bash
+# 默认 2.4 GHz 顺序不变；补充了 5.8 GHz 的 5816.5 MHz
+python3 src/droneid_hackrf_scanner.py --band 5g --preset baseline
+
+# Issue #2 报告的 4+4 频点
+python3 src/droneid_hackrf_scanner.py --band both --preset issue2
+
+# 2022 年历史论文的明确表格频点，仅用于对比研究
+python3 src/droneid_hackrf_scanner.py --band both --preset paper2022
+
+# 正文提到但表格未明确列出的 2474.5 MHz 单频候选
+python3 src/droneid_hackrf_scanner.py --freqs 2474.5
+```
+
+频点越多、重新调谐越频繁，单个频点的实际监听时间比例就可能越低；`--dwell 0.80` 是**采集窗口参数**，不代表已经与 640 ms 发包时钟同步。SN、地区、固件及具体机型对跳频的影响仍属未解决问题。[本项目 Issue #2](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/2)、[后续讨论](https://github.com/proto17/dji_droneid/issues/60)。
+
 ## 6. 发包触发条件
 
 ### Mini 5 Pro —— 本仓库本地观察
