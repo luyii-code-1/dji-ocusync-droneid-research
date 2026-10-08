@@ -4,9 +4,9 @@
 
 基于 HackRF 原始 IQ 的 DJI OcuSync DroneID PHY、逻辑包与密码学链路可复现研究。
 
-**更新于 2026-10-02。** 仓库现在严格区分“本地可复现实测”与“第三方公开确认”。逐条事实、证据等级和精确引用见 [FACTS.zh-CN.md](FACTS.zh-CN.md)。
+**更新于 2026-10-08。** 仓库现在严格区分“本地可复现实测”与“第三方公开确认”。逐条事实、证据等级和精确引用见 [FACTS.zh-CN.md](FACTS.zh-CN.md)。
 
-当前 O4 主结论为：CRYP 中封装的是**随机生成的 AES-128 会话密钥**，使用 SM2 公钥加密；INFP 是使用该会话密钥进行 **AES-128-CTR** 加密的 DroneID 遥测。公开讨论已经给出一份完整参考解密器——只要提供对应的 256-bit SM2 私钥标量即可运行。当前缺口是对应私钥材料/等价 dongle 能力，而不是包格式或 AES 层。
+当前 O4 主结论为：CRYP 中封装的是**随机生成的 AES-128 会话密钥**，使用 SM2 公钥加密；INFP 是使用该会话密钥进行 **AES-128-CTR** 加密的 DroneID 遥测。公开讨论已经给出一份完整参考解密器——只要提供对应的 256-bit SM2 私钥标量即可运行。当前**可公开复现、完全脱离 dongle 的**解密方案仍缺正确的 SM2 私钥标量（或同等可验证、可公开使用的解封机制）；包格式和 AES 层不再是主要障碍。第三方已经贴出调用真实 dongle 的解密日志，但没有公开相应 USB 命令协议与源代码。
 
 ## 已确认结论
 
@@ -55,21 +55,25 @@
 | `note → INFP/87` AES-128-CTR | **本地已验证** | 连续合理遥测 |
 | 随机会话密钥 + SM2 封装模型 | **公开确认** | [Issue #1 纠正说明](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928617113) |
 | 给定正确 SM2 私钥后的完整解密器 | **已公开** | [参考代码](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928889887) |
-| 对应 SM2 private scalar | **未公开** | 当前引用资料中没有公开提取结果 |
+| 对应 SM2 private scalar | **尚无公开独立验证** | 当前引用资料中没有可核验的私钥提取结果 |
+| AeroScope dongle 作为 CRYP 解密 oracle | **第三方运行演示** | [King-Of-Knights 解密日志](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456)；未发布 USB 协议/脚本 |
+| 可直接提供 O4 解密 key | **未经验证的第三方声明** | [TheOldCode 声明](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721)，尚不清楚密钥类型 |
+| 第三方机制辨别测试语料 | **已提出方案、尚无验证结果** | [EdwardBlair 提议](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062814886) |
 | 第三方完整离线 O4 解码 | **已有公开声明** | [online/offline resolved](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704941726)、[确认完整遥测](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5705619316) |
 | 把 Remote-ID `root_key/CMAC/RIDkey` 当成 O4 DroneID KDF | **已纠正 / 排除** | [Remote ID 纠正](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5929240147)、[DroneID 不使用该机制](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948725656) |
 
 ## 目前真正未公开的部分
 
-算法链已经公开到可以实现的程度。标准路径下完全独立离线解码的实际缺口，是**对应 SM2 私钥标量或等价硬件 oracle**。
+算法链已经公开到可以实现的程度。**第三方已展示 dongle 参与的 CRYP → 飞机 session key → INFP 明文运行日志**，但 USB 命令协议及脚本未公开。当前对于**可公开复现、完全不依赖 dongle 的**解码器，仍缺经独立验证的 SM2 私钥标量或其他公开可复现的等价机制。
 
 当前公开证据包括：
 
 - AeroScope 升级硬件包含带密钥材料的 USB 解密 dongle：[Aerial Defence / Edgesource 安全研究](https://www.aerial-defence.com/security-risks-of-the-aeroscope-upgrade-module-whitepaper/)。
-- dongle / TEE 通信路径已有公开安全研究：[Issue #1 资料指针](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928949673)。
+- Edgesource 的 [2024 年白皮书 §1.5–1.6 / Figure 3–6](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf) 展示了拆解后的定制 USB Hub 与取下的处理器，也描述了 AeroScope ↔ dongle 的认证及加密通信；**不能据此认定 dongle 使用 TEE**。[Issue #1 所附照片](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5944688781) 源于 2024 年研究，不能证明 2026 年又发生了新拆机。
+- 必须区分 **AeroScope ↔ dongle 的通信 session key** 与 **飞行器 DroneID 的 session key**：后者由 dongle 从 CRYP 中解封并返回主机，用来解密 INFP。[Edgesource 2024，Figure 5–6](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf)。
 - EdwardBlair 将从 dongle 获取密钥材料描述为剩余的关键方向：[评论](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948750307)。
 
-本仓库**不声称 SM2 私钥已经被公开提取**。
+本仓库**不声称 SM2 私钥已经被公开提取**。[TheOldCode 声称可提供 O4 解密 key](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721)，但未说明究竟是 SM2 私钥还是其他能力，也没有独立验证。[EdwardBlair 已提出测试语料](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062814886)，拟区分 dongle 解密、私钥持有和其他机制；该评论没有公布任何一方通过验证的结果。
 
 同时明确排除此前误区：`root_key → CMAC → RIDkey` 属于 **Remote ID / 遥控器内部遥测保护**，不是 OcuSync DroneID 的 CRYP/INFP 密钥链。详见 [FACTS.zh-CN.md](FACTS.zh-CN.md#3-已纠正remote-id-的-cmac-kdf-不是-ocusync-droneid)。
 
@@ -317,7 +321,8 @@ decode.json
 - 对比不同固件代际的 key ID 与公钥层级；
 - 确认悟 3 O3 是否使用与 O4 完全相同的 CRYP/INFP 密码链，还是仅采用相关的加密 transport；
 - 以双 CRC 有效样本完成新版 O4/O4+ PHY 的端到端验证；
-- 在不公开受保护凭据的前提下研究合法取得的离线接收机/商业模块接口；
+- 在不公开受保护凭据的前提下研究合法取得的离线接收机、AeroScope host ↔ dongle 协议以及 2024 年公开拆机资料，未经硬件验证不推断采用 TEE；
+- 使用脱敏验证语料独立区分 dongle 解密、SM2 私钥持有及其他方案，避免把出售声明误写成已完成的私钥提取；
 - 扩充合成测试和脱敏的跨机型测试向量。
 
 ## 公开与隐私
