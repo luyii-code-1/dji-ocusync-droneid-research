@@ -61,7 +61,7 @@
 
 ## 2a. AeroScope 升级模块：拆解证据及两种会话密钥
 
-**2024 年已有的硬件拆解，并非 2026 年新拆机。** Edgesource 2024 年 3 月发布的 *Security Risks of the AeroScope Upgrade Module* 展示了定制 USB Hub 扩展板，以及从模块移出的内部处理器（Figure 3：Hub 正反面；Figure 4：处理器）。[King-Of-Knights 于 2026 年转贴的图片](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5944688781) 源于这份更早的公开研究，**不能据此断言该评论者亲自完成拆机或取得私钥**。
+**2024 年已有的硬件拆解，并非 2026 年新拆机。** Edgesource 2024 年 3 月发布的 *Security Risks of the AeroScope Upgrade Module* 展示了定制 USB Hub 扩展板，以及从模块移出的内部处理器（Figure 3：Hub 正反面；Figure 4：处理器）。[King-Of-Knights 于 2026 年评论所附图片](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5944688781) 带有 Aerial Defence 标志，显示的 USB Hub/取出器件结构与上述研究一致；但仅凭评论无法核定图片的拍摄时间和确切来源，**不能据此断言该评论者亲自完成拆机或取得私钥**。
 
 来源：[Edgesource 2024 年原文 §1.5，第 9–10 页及 Figure 3/4](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf)。
 
