@@ -8,6 +8,15 @@ Reproducible DJI OcuSync DroneID PHY, packet, and cryptographic analysis based o
 
 The current O4 conclusion is: CRYP contains a **random AES-128 session key wrapped with SM2**, and INFP contains **AES-128-CTR encrypted DroneID telemetry**. A complete public reference decryptor now exists for the standard path once the corresponding 256-bit SM2 private scalar is supplied. The outstanding boundary for a **publicly reproducible dongle-free decryptor** is still the corresponding SM2 private scalar (or an equivalently available authorized capability), not the packet format or AES layer. A third party has demonstrated dongle-mediated decryption in a public console transcript; no public independent private-key extraction has been verified.
 
+## 2026-10-30 update: session-key predictability route (owner-reported)
+
+**The owner reports that a second approach has been validated privately as a potentially generalizable research route.** In certain investigated DroneID implementations, not all bytes of the aircraft's 16-byte AES session key `K` appear independently and uniformly random: some may be derived from fixed or otherwise predictable fields, while the remaining bytes may have limited effective entropy. This motivates **constrained session-key candidate recovery followed by validation against same-session INFP plaintext**, rather than extraction of the long-term AeroScope SM2 private scalar `d`.
+
+- **Route 1 — long-term private key:** obtain recipient SM2 private scalar `d` from protected hardware. No independently reproducible public extraction is established.
+- **Route 2 — session-key predictability:** investigate deterministic/predictable bytes and the residual entropy of `K`, then validate candidate keys against session association and multiple INFP payloads. **The owner reports this as scalable in private research; evidence tier: `OWNER-REPORTED / PRIVATE`.**
+
+**Scope and evidence:** No sanitized independently checkable captures, per-byte statistics, device/firmware coverage matrix, or complete implementation have been published here for this new claim. **Do not infer that all O4 devices, or most vendors, use low-entropy AES keys; this is not a break of SM2.** The public protocol specification still models `K` as a freshly randomized AES-128 key. Implementation-specific deviations require independent corroboration. Also distinguish the **aircraft DroneID key `K`** from the unrelated **AeroScope host↔dongle transport session key**. See [status](STATUS.md) and [facts](FACTS.md).
+
 ## October 2026 status snapshot
 
 **[Current detailed status](STATUS.md) / [中文状态总览](STATUS.zh-CN.md).** The repository owner identifies **King-Of-Knights as the correspondent in previously shared private hardware-research chats**, not as the owner. These conversations include **owner-reported collaborative progress** on AeroScope host/dongle communication emulation and dongle X-ray analysis; invasive chip analysis remains unconfirmed. The real recipient SM2 private scalar has **not** been shown to be extracted. Neither private chat screenshots nor the suspected chip area are posted as verified artifacts.
