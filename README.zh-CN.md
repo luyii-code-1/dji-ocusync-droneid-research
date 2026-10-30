@@ -4,9 +4,17 @@
 
 基于 HackRF 原始 IQ 的 DJI OcuSync DroneID PHY、逻辑包与密码学链路可复现研究。
 
-**更新于 2026-10-08。** 仓库现在严格区分“本地可复现实测”与“第三方公开确认”。逐条事实、证据等级和精确引用见 [FACTS.zh-CN.md](FACTS.zh-CN.md)。
+**更新于 2026-10-30。** 仓库现在严格区分“本地可复现实测”与“第三方公开确认”。逐条事实、证据等级和精确引用见 [FACTS.zh-CN.md](FACTS.zh-CN.md)。
 
 当前 O4 主结论为：CRYP 中封装的是**随机生成的 AES-128 会话密钥**，使用 SM2 公钥加密；INFP 是使用该会话密钥进行 **AES-128-CTR** 加密的 DroneID 遥测。公开讨论已经给出一份完整参考解密器——只要提供对应的 256-bit SM2 私钥标量即可运行。当前**可公开复现、完全脱离 dongle 的**解密方案仍缺正确的 SM2 私钥标量（或同等可验证、可公开使用的解封机制）；包格式和 AES 层不再是主要障碍。第三方已经贴出调用真实 dongle 的解密日志，但没有公开相应 USB 命令协议与源代码。
+
+## 2026 年 10 月最新研究状态
+
+**[中文完整状态总览](STATUS.zh-CN.md) / [English status](STATUS.md)。** 仓库作者已确认：**King-Of-Knights 是其先前私聊截图中的对方，而非作者本人**。私聊中涉及 AeroScope 主机 ↔ dongle 通信模拟及 X 光分析；目前只适合归类为**作者报告的合作进度**，不能据此判断具体由谁亲手执行了哪一项实验。拆芯片仍是后续工作，**没有可公开验证的 SM2 长期私钥提取结果**。
+
+[King-Of-Knights 的 dongle 解密演示](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456)与[作者基于该研究完成离线解密的公开报告](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6078335828)，对应的是**真实硬件辅助离线解密**，**不等于脱离 dongle 的私钥提取**。TheOldCode 也已[明确澄清](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6075832628)：其所谓的 key 是**在线服务访问密钥**，不是真实 SM2 私钥。
+
+另据 [2026-10-22 公开的 v3 RF/PHY 规范](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY_CN.md)，新一代波形为 **8 OFDM symbol**，七个频点为 2414.5 / 2429.5 / 2444.5 / 5756.5 / 5776.5 / 5796.5 / 5816.5 MHz，采用明确的 8-bit 计数器跳频表与 163.84 秒超周期。**本仓库的 HackRF scanner 仍采用经典 9-symbol shell 与历史频点预设，并未实现 v3 8-symbol 接收或相位跟踪**，不能仅凭频点重合判定已支持 v3。
 
 ## 已确认结论
 
@@ -57,7 +65,7 @@
 | 给定正确 SM2 私钥后的完整解密器 | **已公开** | [参考代码](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928889887) |
 | 对应 SM2 private scalar | **尚无公开独立验证** | 当前引用资料中没有可核验的私钥提取结果 |
 | AeroScope dongle 作为 CRYP 解密 oracle | **第三方运行演示** | [King-Of-Knights 解密日志](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456)；未发布 USB 协议/脚本 |
-| 可直接提供 O4 解密 key | **未经验证的第三方声明** | [TheOldCode 声明](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721)，尚不清楚密钥类型 |
+| TheOldCode 所提供的 key | **已澄清仅为在线服务访问密钥，并非 SM2 私钥** | [原声明](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721)、[后续更正](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6075832628) |
 | 第三方机制辨别测试语料 | **已提出方案、尚无验证结果** | [EdwardBlair 提议](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062814886) |
 | 第三方完整离线 O4 解码 | **已有公开声明** | [online/offline resolved](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704941726)、[确认完整遥测](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5705619316) |
 | 把 Remote-ID `root_key/CMAC/RIDkey` 当成 O4 DroneID KDF | **已纠正 / 排除** | [Remote ID 纠正](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5929240147)、[DroneID 不使用该机制](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948725656) |
@@ -148,7 +156,7 @@ python3 src/droneid_hackrf_scanner.py --freqs 2474.5
 
 2022 年论文正文写到 2.4 GHz 上限 **2474.5 MHz**，但 Table II 最后一行却重复 **2459.5 MHz**；因此 `paper2022` 不擅自把 2474.5 当作已验证的表格数据。指定 `--freqs` 时覆盖 `--preset` 和 `--band`。
 
-**跳频规律必须限定适用机型：** Mavic 2/Mini 2 的公开测试报告为约 640 ms 发包间隔、同频 13 包；EdwardBlair 对**新一代/O4**提出 8-bit publication counter、先 `mod 256` 再 `mod 7` 查表、163.84 s 超周期的机制。**查找表内容和可复现的 receive-only follower 未在引文中公开。** 目前扫描器仍是普通驻留轮询，不具备跳频相位跟踪，`--dwell 0.80` 也不代表同步了 640 ms 发包周期。
+**跳频规律必须限定适用机型：** Mavic 2/Mini 2 的公开测试报告为约 640 ms 发包间隔、同频 13 包；EdwardBlair 对**新一代/O4**提出 8-bit publication counter、先 `mod 256` 再 `mod 7` 查表、163.84 s 超周期的机制。**七频点查找表与计数器公式已经在 [10 月新规范](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY_CN.md) 中公开**；但本仓库扫描器还**没有实现 v3 8-symbol PHY 或跳频相位跟踪**。旧 `issue2` 预设包含 2459.5 MHz，而新 [v3 七频点规范明确不含该频点](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6490897000)；`--dwell 0.80` 也不代表同步了 640 ms 发包周期。
 
 具体型号差异、逐条证据和来源见 [FACTS.zh-CN.md](FACTS.zh-CN.md)，不要把旧机型频点和 O4 机制强行合并为通用列表。
 
