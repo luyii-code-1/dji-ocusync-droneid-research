@@ -5,6 +5,10 @@ venv/
 build/
 third_party/
 *.iq
+*.pcap
+*.pcapng
+*.sigmf-data
+*.sigmf-meta
 *.npy
 *.bin
 *.csv
@@ -12,5 +16,12 @@ third_party/
 captures/
 results/
 live_droneid_results/
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
 .DS_Store
 
