@@ -4,9 +4,9 @@
 
 **最后核对：2026-10-30**
 
-**2026-10-30 更新：** [最新研究总览](STATUS.zh-CN.md) 纳入与 King-Of-Knights 私聊对应的加密狗/X 光研究进展、[EdwardBlair 已公开的 v3 8-symbol PHY](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY_CN.md) 及 TheOldCode 密钥声明的后续澄清。**私人对话不等于公开可复现证据。**
+**2026-10-30 更新：本项目对外公开介绍的主要解密方法为第二种，即研究飞行器 DroneID 会话密钥的可预测性。** 研究方报告该方法在内部测试中具有推广价值，但完整实现与适用机型范围尚未公开。[研究状态](STATUS.zh-CN.md) · [公开协议规范](https://github.com/EdwardBlair/dji-droneid-spec)
 
-本文把当前信息严格分成：**本仓库可复现实测、第三方公开确认、第三方实现声明、已纠正/排除的路径、仍未解决的问题**。GitHub 评论中的公开说法不会自动等同于本仓库已经独立复现。
+本页记录公开可复现结果、第三方报告和研究方尚未公开的结论，避免把推测写成实测。
 
 ## 证据等级
 
@@ -63,7 +63,7 @@
 
 ## 2a. AeroScope 升级模块：拆解证据及两种会话密钥
 
-**2024 年已有的硬件拆解，并非 2026 年新拆机。** Edgesource 2024 年 3 月发布的 *Security Risks of the AeroScope Upgrade Module* 展示了定制 USB Hub 扩展板，以及从模块移出的内部处理器（Figure 3：Hub 正反面；Figure 4：处理器）。[King-Of-Knights 于 2026 年评论所附图片](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5944688781) 带有 Aerial Defence 标志，显示的 USB Hub/取出器件结构与上述研究一致；但仅凭评论无法核定图片的拍摄时间和确切来源，**不能据此断言该评论者亲自完成拆机或取得私钥**。
+**已有硬件资料：** Edgesource 在 2024 年公开了 AeroScope 升级模块拆解与内部处理器资料，不能据此认定 2026 年其他研究者独立完成过同样的拆解，也不能由外观推导出私钥状态。
 
 来源：[Edgesource 2024 年原文 §1.5，第 9–10 页及 Figure 3/4](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf)。
 
@@ -85,15 +85,15 @@
 | King-Of-Knights 表示一周内接触到至少三方销售离线解密算法；属于**报价/供给线索**，不是三次已验证的私钥提取。 | **第三方声明，未验证** | [Issue #1 回复](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062489107) |
 | EdwardBlair 提出可以提供**测试语料**，以较高可信度区分① dongle 解密、② 真正持有私钥、③ 其他机制。该评论仅提出验证方案，**没有证明任何提供方已经通过测试**。 | **公开验证方案，尚无测试结果** | [Issue #1 回复](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062814886) |
 
-**当前边界：** 已有公开协议/参考解密器及第三方 dongle 调用日志；TheOldCode 已澄清只有**在线服务密钥**。仍**不能证明真实 SM2 私钥已提取**或脱离 dongle 的完整软件解码已公开复现。私下合作的硬件进展请见 [状态总览](STATUS.zh-CN.md#二私人聊天对象与实验归属)。
+**当前边界：** 已有公开协议/参考解密器及第三方 dongle 调用日志；TheOldCode 已澄清只有**在线服务密钥**。仍**不能证明真实 SM2 私钥已提取**或脱离 dongle 的完整软件解码已公开复现。本仓库采用的方法二及其证据限制见 [研究状态](STATUS.zh-CN.md#二方法二的研究结论)。
 
-## 2c. 2026-10-30 新方向：会话密钥可预测性（作者报告）
+## 2c. 主要公开方向：方法二（会话密钥）
 
-- **研究方报告的结论：** 方法 2（分析部分可预测/固定来源的会话密钥字节和有限的剩余有效熵）已在私下研究中确认具有可推广价值；并非报告已提取 SM2 长期私钥。
-- **适用对象：** 本项说法针对飞行器 DroneID 的 AES-128 会话密钥 `K`，不是 AeroScope 主机与 dongle 通信的会话密钥。
-- **证据等级：`OWNER-REPORTED / PRIVATE`；公开可复现性：`OPEN`。** 当前未公开经脱敏的跨会话/跨机型 `K` 字节分布、固件版本、对应报文及完整实现，无法独立衡量剩余熵或证实覆盖范围。
-- **与既有模型的关系：** 公开协议资料将 `K` 表述为随机生成的 128-bit 密钥。本项报告可能意味着特定实现不符合该随机性模型；尚不能认定所有 O4 或大多数厂家具有同样问题。无需推断 SM2 已破解或私钥已导出。
-- **所需验证：** 在合法获取的受控样本上比较独立会话的密钥分布，验证候选 `K` 的 `SHA-256(K)[0:4]` 匹配和多条同会话 INFP 明文一致性，并明确设备/固件边界。4-byte `key_id` 本身不足以排除碰撞。
+**方法二**不是提取 AeroScope 的长期 SM2 私钥，而是研究飞行器 DroneID 会话密钥 `K` 中固定或可预测的部分，以及剩余字节的有效随机性。研究方于 2026 年 10 月 30 日报告：该方向已在内部验证，具备推广价值。
+
+目前未公开完整实现、脱敏的统计样本和机型/固件覆盖范围，因此**公开的是研究结论，不是可供第三方直接复现的完整解密器**。公开协议仍把 `K` 视为随机 AES-128 密钥；是否存在实现差异，需要独立验证。不应据此断言所有 O4 设备均有相同问题，更不能把它理解为 SM2 或 AES 被破解。
+
+这里的 `K` 是飞行器的 DroneID 会话密钥，不是 AeroScope 与 dongle 之间的通信会话密钥。研究方不在仓库公开真实密钥、可用于识别人员的抓包或未经授权的设备数据。
 
 ## 3. 已纠正：Remote ID 的 CMAC KDF 不是 OcuSync DroneID
 
@@ -277,6 +277,7 @@ INFP:
 
 ### 公开层面仍未解决
 
+- 方法二的完整复现程序、脱敏实验结果和跨机型适用范围尚未公布。
 - AeroScope SM2 private scalar 的公开提取。
 - 可公开复现的 dongle key dump / oracle 工作流。
 - 所有 O4/O4+ PHY 变体的逐机型端到端确认。
