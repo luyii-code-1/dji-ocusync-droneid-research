@@ -14,10 +14,19 @@
 | 使用**真实 AeroScope dongle** 的 O4 完整解密 | **第三方公开演示 + 作者公开报告** | [King-Of-Knights 演示日志](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456)、[仓库作者称基于其研究完成硬件辅助离线解码](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6078335828)；完整 USB 命令协议/程序未作为公开可复现成果提供 |
 | AeroScope 主机 ↔ dongle 交互认证/模拟 | **OWNER-REPORTED / PRIVATE** | 作者在其他对话中报告已完成通信模拟/通行；不等于完全软件仿真密码芯片，也不等于已取得硬件内部私钥 |
 | dongle X 光扫描分析 | **OWNER-REPORTED / PRIVATE** | 作者报告已完成；相关截图中标为 **#4** 的区域曾被推测为 COB/裸片、键合线结构，**不是**芯片型号、存储位置或私钥所在位置的确认；原始 X 光数据尚未在本仓库发表 |
+| 会话密钥部分字节可预测/有效熵较低的解密路线（方法 2） | **OWNER-REPORTED / PRIVATE；作者报告已确认具有推广价值** | 作者 2026-10-30 更新：部分 `K` 字节由固定/可推导字段决定、其余随机性受限；尚无可独立复核的按字节统计、机型覆盖、受控抓包及公开实现；不等于已取得 SM2 私钥 |
 | 拆芯片/开封/侵入式提取 | **OPEN / 下一阶段** | 此前描述为下一步工作，**没有可公开核查的已完成开封提取结果** |
 | 真正的接收端 SM2 私钥标量 `d` | **OPEN** | 本仓库没有真实私钥；[公开规范的 keys 目录只有测试用 dummy key](https://github.com/EdwardBlair/dji-droneid-spec/tree/55bb88676dbc75913f074d7816ed5f7a3ab92454/keys)；dongle 可解封 CRYP 不能推出 `d` 已经被导出 |
 | 完全不使用 dongle、公开可复现的真实 O4 解密 | **OPEN** | 合成 SM2/AES 测试只说明算法正确，不说明真实私钥已获得 |
 | O4 起转瞬间可能出现明文包 | **争议中 / 缺可复现实测** | [Issue #3：Mavic 4 Pro 机主声明](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/3#issuecomment-6459214434)；[EdwardBlair 要求提供具体固件版本](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/3#issuecomment-6459273901)；不得推广成 O4 普遍明文 |
+
+## 一·一、会话密钥路线的新进展（2026-10-30，作者报告）
+
+作者补充：**目前确认可推广的研究路线是方法 2，而非从硬件中提取 SM2 私钥的路线。** 根据作者报告，部分所研究实现中的**飞行器 DroneID 会话密钥 `K`** 由固定/可推导字节与随机性受限的字节组成，可能通过限制候选集合来恢复 `K`，随后结合 `key_id = SHA-256(K)[0:4]` 与同会话多条 INFP 的解密结构进行验证。此路线针对实现层面的密钥生成弱点，不是求解 SM2 离散对数，也不是 AES-128 本身被破解。
+
+**证据状态：`OWNER-REPORTED / PRIVATE`。** 这是作者对私下研究结果及可推广性的确认，不是本仓库已经公布的独立可复现实验。当前没有公开足够的脱敏捕获样本、按字节熵分布、具体机型/固件范围、完整候选恢复程序或跨设备统计。**公开协议文档中的“随机生成 AES-128 会话密钥”仍是标准模型**；本项新报告提出可能存在实现差异，尚不能泛化到所有 O4 设备，更不能将“多数厂家采用”当作已验证事实。
+
+需要分别记录 **飞行器 DroneID 的 `K`** 与 **AeroScope 主机↔dongle 的传输密钥**；两者不能混同。仅依赖 4-byte `key_id` 可能出现碰撞，候选密钥验证还需同会话多报文与充分的明文结构检查。完全无 dongle 的**公开可复现**解密状态保持 `OPEN`，直至有可审核实验公开。
 
 ## 二、私人聊天对象与实验归属
 
