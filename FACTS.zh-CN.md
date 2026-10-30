@@ -2,7 +2,9 @@
 
 [English](FACTS.md) | [简体中文](FACTS.zh-CN.md)
 
-**最后核对：2026-10-08**
+**最后核对：2026-10-30**
+
+**2026-10-30 更新：** [最新研究总览](STATUS.zh-CN.md) 纳入与 King-Of-Knights 私聊对应的加密狗/X 光研究进展、[EdwardBlair 已公开的 v3 8-symbol PHY](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY_CN.md) 及 TheOldCode 密钥声明的后续澄清。**私人对话不等于公开可复现证据。**
 
 本文把当前信息严格分成：**本仓库可复现实测、第三方公开确认、第三方实现声明、已纠正/排除的路径、仍未解决的问题**。GitHub 评论中的公开说法不会自动等同于本仓库已经独立复现。
 
@@ -79,11 +81,11 @@
 | 进展/原话范围 | 证据等级 | 精确来源 |
 |---|---|---|
 | King-Of-Knights 公布控制台输出，**声称成功调用真实 AeroScope dongle**：输入 CRYP/AA（或 A3）后得到 16-byte 飞机 session key，并据此把同会话 INFP/87（或 80）解成连续遥测。未公开 `dji_dongle_decrypt.py` 源码和 dongle 的命令/USB 协议。 | **公开运行演示（日志），尚不可独立复现** | [Issue #1 演示](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456) |
-| TheOldCode 表示可以提供 “O4 decryption key”，**但未说明究竟是 SM2 private scalar、dongle 能力还是其他机制**；所引评论没有密钥或独立校验证据。 | **第三方声明，未验证** | [proto17/dji_droneid #63](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721) |
+| TheOldCode **后来明确澄清**：提供的是**在线解密服务的访问密钥，不是真实 AeroScope SM2 私钥标量**。不应再将其作为“私钥已提取”的证据。 | **声明人本人纠正** | [最初声明](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721)、[澄清评论](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6075832628) |
 | King-Of-Knights 表示一周内接触到至少三方销售离线解密算法；属于**报价/供给线索**，不是三次已验证的私钥提取。 | **第三方声明，未验证** | [Issue #1 回复](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062489107) |
 | EdwardBlair 提出可以提供**测试语料**，以较高可信度区分① dongle 解密、② 真正持有私钥、③ 其他机制。该评论仅提出验证方案，**没有证明任何提供方已经通过测试**。 | **公开验证方案，尚无测试结果** | [Issue #1 回复](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062814886) |
 
-**当前边界：** 已有公开协议/参考解密器、第三方 dongle 调用日志及密钥持有声明；但以上资料**仍不能证明 SM2 私钥已被公开、独立验证提取，也不能证明脱离 dongle 的完整软件解码已可复现**。
+**当前边界：** 已有公开协议/参考解密器及第三方 dongle 调用日志；TheOldCode 已澄清只有**在线服务密钥**。仍**不能证明真实 SM2 私钥已提取**或脱离 dongle 的完整软件解码已公开复现。私下合作的硬件进展请见 [状态总览](STATUS.zh-CN.md#二私人聊天对象与实验归属)。
 
 ## 3. 已纠正：Remote ID 的 CMAC KDF 不是 OcuSync DroneID
 
@@ -141,7 +143,7 @@ validation        CRC24A + DJI CRC16
 |---|---|---|
 | 本项目至少部分 O4 加密 DroneID 抓包可以经过经典 O2-like 9-symbol PHY/FEC shell，并最终同时通过 CRC24A 与 DJI CRC16。 | **本地已验证** | [RUB DroneSecurity 交叉验证回复](https://github.com/RUB-SysSec/DroneSecurity/issues/50#issuecomment-5636324901) |
 | EdwardBlair 表示当前 O4 DroneID 解码只需要 ZC root 600；root 147 虽持续存在，但不是解码必需。 | **公开确认（注明来源）** | [Issue #1 评论](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5716726564) |
-| root 147 在当前 O4 DroneID 中的实际用途仍未知；“可能与 C2 有关”只是建议，不是已验证结论。 | **未解决** | [同一评论](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5716726564) |
+| 早期讨论对 ZC root 147 的作用存在疑问；较新的 **v3 物理层规范**明确把其放在 symbol 4，作为参考序列参与信道处理。该信息仅适用于所述 v3 波形，不应代替旧机型逐帧验证。 | **公开规范，限定代际** | [早期评论](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5716726564)、[新版 PHY](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY_CN.md) |
 | Air 3S 用户曾公开报告约 500 µs、4 个 ZC 的重复 O4 burst；它究竟属于 DroneID、C2 还是其他状态帧仍未确认。 | **局部观察** | [RUB DroneSecurity Issue #50](https://github.com/RUB-SysSec/DroneSecurity/issues/50) |
 
 在没有更多跨机型/固件双 CRC 样本前，不应把某一种 O4 PHY shell 写成全系列唯一结构。
@@ -164,9 +166,9 @@ validation        CRC24A + DJI CRC16
 |---|---|---|
 | **Mavic 2**：frbarcio 台架实测 | 每个频点连续发 **13 包**，间隔约 **640 ms**；观察到 **32 个频点槽位**和约 **266.24 s** 的序列 `22217401 24625344 74630351 02657265`，数字 0–7 是按频率从低到高的频道编号 | **第三方机型实测**；不能外推为 O4 的跳频表。[原始评论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-5834208418) |
 | **Mini 2**：King-Of-Knights 暗室连续采样 | 声称分析了 **9000+** 个连续序号 DroneID；发包周期 **640 ms**、同频连续 **13 包**，其测试中的序列不受重启影响 | **第三方机型实测**；与 Mavic 2 序列不同。序列表以截图形式发布，本文不臆造其文本。[原始评论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-5971878188)、[差异讨论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-5994521538) |
-| **新一代/O4**：EdwardBlair 的逆向说明 | 由递增的 **8-bit publication counter** 与固定 **seven-lane lookup** 驱动；计数器先 `mod 256`，再进行 `mod 7` 查表。按每次 **640 ms** 计，超周期为 **256 × 0.640 = 163.84 s** | **注明来源的公开技术主张**。具体查找表、频率映射及 receive-only follower 实现**未在该评论中公开**。“七路查找表”不等于“总共只有七个 RF 中心频点”。作者明确警告旧 Mini 2/Mavic 2 规律不能直接套到 O4。[原始评论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6056885076) |
+| **新一代/v3 DroneID**：EdwardBlair 新规范 | 递增的 **8-bit publication counter**、**现已公开的七个中心频点映射**、640 ms 发包间隔、163.84 s 的 modulo-256 超周期 | **2026-10-22 公开规范**，与旧 Mini 2/Mavic 2 跳频不同。[早期评论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6056885076)、[完整映射公式](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY_CN.md)、[七频点澄清](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6490897000) |
 
-**需要保留的实现边界：** 即使知道跳频相位，也不能仅凭相位认定是哪架飞机；必须通过 CRC/完整性有效的会话字段区分并发 CRYP/INFP。EdwardBlair 当时表示**计划**发布 receive-only follower，不等于已经公开代码。复现仍需要查找表、相位捕获方法、跨机型抓包。来源：[评论](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6056885076)。
+**需要保留的实现边界：** 跳频相位不能直接识别某架飞机，仍需 CRC/完整性有效的会话关联。**七频点查找表现在已经公开**：[RF_PHY_CN.md](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY_CN.md) 包含计数器公式及相位假设获取流程；但本仓库**尚未实现并以原始 IQ 验证**符合新 v3 格式的跟踪器，现有扫描器仍是经典 O2-like 9-symbol 解码。
 
 **图传链路频段设置 ≠ DroneID 频段锁定：** 2022 论文指出指定 OcuSync 图传频段并不能约束 DroneID 跳频。[King-Of-Knights](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6062814244)、[EdwardBlair](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6062938322) 也确认两套频段独立。[本仓库作者的 Mini 2 观察](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6062975703) 是“图传强制 5.8 GHz 后，2444.5 MHz DroneID 在当时实验条件下更易抓到”，可能与干扰环境有关，**不能推导 DroneID 本身切换到指定频段**。
 
