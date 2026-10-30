@@ -4,9 +4,17 @@
 
 Reproducible DJI OcuSync DroneID PHY, packet, and cryptographic analysis based on raw HackRF IQ captures.
 
-**Updated 2026-10-08.** The repository now separates local reproduction from public third-party confirmation. The detailed claim-by-claim evidence ledger is in [FACTS.md](FACTS.md).
+**Updated 2026-10-30.** The repository now separates local reproduction from public third-party confirmation. The detailed claim-by-claim evidence ledger is in [FACTS.md](FACTS.md).
 
 The current O4 conclusion is: CRYP contains a **random AES-128 session key wrapped with SM2**, and INFP contains **AES-128-CTR encrypted DroneID telemetry**. A complete public reference decryptor now exists for the standard path once the corresponding 256-bit SM2 private scalar is supplied. The outstanding boundary for a **publicly reproducible dongle-free decryptor** is still the corresponding SM2 private scalar (or an equivalently available authorized capability), not the packet format or AES layer. A third party has demonstrated dongle-mediated decryption in a public console transcript; no public independent private-key extraction has been verified.
+
+## October 2026 status snapshot
+
+**[Current detailed status](STATUS.md) / [中文状态总览](STATUS.zh-CN.md).** The repository owner identifies **King-Of-Knights as the correspondent in previously shared private hardware-research chats**, not as the owner. These conversations include **owner-reported collaborative progress** on AeroScope host/dongle communication emulation and dongle X-ray analysis; invasive chip analysis remains unconfirmed. The real recipient SM2 private scalar has **not** been shown to be extracted. Neither private chat screenshots nor the suspected chip area are posted as verified artifacts.
+
+[King-Of-Knights' dongle-assisted decoder transcript](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456) and [the owner's public report of offline decoding based on that work](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6078335828) describe **offline decoding with real hardware**, **not independent dongle-free key extraction**. TheOldCode [explicitly clarified](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6075832628) that their offered key was for an **online service**, not the recipient SM2 private scalar.
+
+A newer [public v3 RF/PHY specification](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY.md) describes **8 OFDM symbols**, seven specified frequencies (2414.5/2429.5/2444.5/5756.5/5776.5/5796.5/5816.5 MHz), an explicit 8-bit-counter hopping map, and a 163.84 s supercycle. **This repository's HackRF scanner still implements the classic nine-symbol shell and historical frequency presets**, not that v3 receiver/follower. Do not infer v3 reception from a correct frequency list alone.
 
 ## Confirmed result
 
@@ -57,7 +65,7 @@ Key public confirmations:
 | Complete decryptor given the correct SM2 private scalar | **PUBLIC** | [reference code](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5928889887) |
 | Relevant SM2 private scalar | **NOT PUBLICLY VERIFIED** | No independently verified public extraction in cited sources |
 | AeroScope dongle as CRYP decryption oracle | **THIRD-PARTY DEMONSTRATION** | [King-Of-Knights console transcript](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456); USB command protocol and script not released |
-| Direct O4 decryption-key availability | **UNVERIFIED CLAIM** | [TheOldCode offer](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721); key type not established |
+| O4 key offer by TheOldCode | **CLARIFIED: ONLINE SERVICE ONLY, NOT SM2 PRIVATE KEY** | [Original](https://github.com/proto17/dji_droneid/issues/63#issuecomment-6057095721), [explicit correction](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6075832628) |
 | Independent classification of vendor decryption method | **TEST CORPUS OFFERED, NOT YET TESTED** | [EdwardBlair proposal](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6062814886) |
 | Third-party complete offline O4 implementation | **PUBLICLY REPORTED** | [online/offline resolved](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5704941726), [decoded telemetry confirmed](https://github.com/alphafox02/antsdr_dji_droneid/issues/27#issuecomment-5705619316) |
 | Remote-ID `root_key/CMAC/RIDkey` path as O4 DroneID key derivation | **CORRECTED / REJECTED** | [Remote ID correction](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5929240147), [DroneID does not use it](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948725656) |
@@ -148,7 +156,7 @@ python3 src/droneid_hackrf_scanner.py --freqs 2474.5
 
 The 2022 paper's **2.4 GHz upper bound of 2474.5 MHz is prose-only**: its Table II instead repeats 2459.5 MHz. It is therefore not silently included in `paper2022`. In all cases `--freqs` overrides `--preset` and `--band`.
 
-**Hopping evidence must stay model-scoped:** Mavic 2/Mini 2 measurements report ~640 ms transmissions in trains of 13 per frequency, whereas EdwardBlair describes a *newer/O4* 8-bit publication counter, modulo-256-before-modulo-seven lookup, and a 163.84 s supercycle. The seven-lane lookup contents and a validated receive-only follower have **not** been published in the cited comment. The scanner **does not implement phase following**, and `--dwell 0.80` should not be interpreted as hop synchronization.
+**Hopping evidence must stay model-scoped:** Mavic 2/Mini 2 measurements report ~640 ms transmissions in trains of 13 per frequency, whereas EdwardBlair describes a *newer/O4* 8-bit publication counter, modulo-256-before-modulo-seven lookup, and a 163.84 s supercycle. The **seven-lane lookup and counter formula are now published** in [the October v3 specification](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY.md). The scanner **does not implement the v3 eight-symbol PHY or phase following**, and `--dwell 0.80` is not hop synchronization. Historical `issue2` includes 2459.5 MHz, which [EdwardBlair excludes from the v3 seven-frequency set](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6490897000).
 
 See [FACTS.md](FACTS.md) for per-model data, exact primary citations, and caveats. Do not merge the legacy/historical and newer/O4 lists into a supposedly universal frequency table.
 
