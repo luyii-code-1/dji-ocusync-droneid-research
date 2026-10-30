@@ -19,8 +19,6 @@
 
 ## 2026 年 10 月最新研究状态
 
-**[中文完整状态总览](STATUS.zh-CN.md) / [English status](STATUS.md)。** 仓库作者已确认：**King-Of-Knights 是其先前私聊截图中的对方，而非作者本人**。私聊中涉及 AeroScope 主机 ↔ dongle 通信模拟及 X 光分析；目前只适合归类为**作者报告的合作进度**，不能据此判断具体由谁亲手执行了哪一项实验。拆芯片仍是后续工作，**没有可公开验证的 SM2 长期私钥提取结果**。
-
 [King-Of-Knights 的 dongle 解密演示](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456)与[作者基于该研究完成离线解密的公开报告](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6078335828)，对应的是**真实硬件辅助离线解密**，**不等于脱离 dongle 的私钥提取**。TheOldCode 也已[明确澄清](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6075832628)：其所谓的 key 是**在线服务访问密钥**，不是真实 SM2 私钥。
 
 另据 [2026-10-22 公开的 v3 RF/PHY 规范](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY_CN.md)，新一代波形为 **8 OFDM symbol**，七个频点为 2414.5 / 2429.5 / 2444.5 / 5756.5 / 5776.5 / 5796.5 / 5816.5 MHz，采用明确的 8-bit 计数器跳频表与 163.84 秒超周期。**本仓库的 HackRF scanner 仍采用经典 9-symbol shell 与历史频点预设，并未实现 v3 8-symbol 接收或相位跟踪**，不能仅凭频点重合判定已支持 v3。
