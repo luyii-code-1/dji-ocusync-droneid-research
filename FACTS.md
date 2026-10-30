@@ -87,6 +87,14 @@ The paper describes a physically protected processor and a dongle authentication
 
 **Current boundary:** a public protocol/reference decryptor and a third-party hardware-oracle transcript exist. TheOldCode's claimed key is **online-service access only**; a published, independently verified AeroScope SM2 private-scalar extraction and fully reproducible dongle-free decoder are **not established by these sources**. [Owner's private hardware status](STATUS.md#attribution-king-of-knights-and-private-conversations).
 
+## 2c. Session-key predictability (30 October 2026; owner-reported)
+
+- **Owner's finding:** Route 2, investigating fixed/derivable session-key bytes and reduced residual entropy, is reported to be validated privately and potentially generalizable. This is **not** a report that the long-term SM2 recipient private scalar has been extracted.
+- **Key identity:** This claim concerns the aircraft's DroneID AES-128 session key `K`, not the separate AeroScope host↔dongle transport-session key.
+- **Evidence tier: `OWNER-REPORTED / PRIVATE`; public reproducibility: `OPEN`.** No sanitized cross-session/cross-device key-byte distribution, firmware inventory, associated packets, or complete implementation is available here; the effective entropy and coverage cannot be independently assessed.
+- **Relationship to established protocol:** Public specifications describe `K` as a fresh random 128-bit key. This report proposes possible implementation-dependent deviations; it does not demonstrate that all O4 devices or most vendors share them, and does not imply an SM2 or AES primitive break.
+- **Independent validation criteria:** Compare legally obtained controlled sessions, cross-check candidate `K` against `SHA-256(K)[0:4]` and multiple same-session INFP plaintexts, and document device/firmware scope. A 4-byte `key_id` alone is susceptible to collisions.
+
 ## 3. Corrected interpretation: Remote ID KDF is not DroneID
 
 An earlier Issue #1 branch discussed:
