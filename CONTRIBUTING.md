@@ -2,19 +2,18 @@
 
 [English](CONTRIBUTING.md) | [简体中文](CONTRIBUTING.zh-CN.md)
 
-Reproducible protocol, DSP, and cryptographic research improvements are welcome.
+Contributions to protocol analysis, receivers and reproducible tests are welcome. Before submitting:
 
-Before submitting a contribution, please ensure that:
+- distinguish measurements from published references and unverified interpretations, and cite your sources;
+- include CRC or other validity checks for decoded packets, without committing real session keys;
+- use synthetic or properly anonymized device IDs, locations, flight tracks and capture metadata;
+- do not post private chat images, hardware photos without permission, authentication material, service tokens or key files;
+- share IQ/firmware material only when you have redistribution rights, and preserve third-party licenses;
+- obtain authorization before testing live services.
 
-- conclusions are labeled as verified, strong evidence, or hypothesis;
-- successful decodes include CRC24A, DJI CRC16, or another explicit consistency check;
-- examples use synthetic or anonymized serial numbers, UUIDs, and locations;
-- API keys, notes, and service credentials remain in a secure local environment;
-- IQ and firmware samples are legally shareable;
-- third-party code retains its source and license information;
-- active service-side testing has explicit authorization.
+For route 2, the public material currently describes the research direction, not a complete reproducible decryptor. State the hardware and firmware scope of any new findings rather than extrapolating to all O4 devices.
 
-Run the basic checks:
+Basic checks:
 
 ```bash
 python3 -m py_compile src/*.py tests/*.py
