@@ -2,9 +2,9 @@
 
 [English](STATUS.md) | [简体中文](STATUS.zh-CN.md) | [Evidence ledger](FACTS.md) | [Home](README.md)
 
-This is a dated status snapshot, **not** a claim that the long-term SM2 recipient private key has been extracted. It combines repository work, public discussions, and the owner's own report about ongoing private hardware research. **Source tiers are explicit**: `REPO-REPRODUCED` (repo code/captures), `PUBLIC-SPEC` (linked reference implementation), `PUBLIC-REPORT` (attributed GitHub claim), `OWNER-REPORTED / PRIVATE` (communicated by the owner, not publicly reproducible), and `OPEN`. Do not convert a screenshot or personal message into independent proof.
+**The primary decryption approach presented publicly by this project is route 2: investigating predictability in the aircraft's session key.** The research team reports private validation and broader potential, but no complete implementation or independent cross-device evidence has been released. This page separates reproducible results, public references and unpublished findings.
 
-## Executive status
+## Research status
 
 | Component | Status as of 2026-10-30 | Evidence / boundary |
 |---|---|---|
@@ -12,37 +12,30 @@ This is a dated status snapshot, **not** a claim that the long-term SM2 recipien
 | O4 CRYP / INFP-10 / INFP-11 packet & crypto chain | **PUBLIC-SPEC + local packet observations** | [EdwardBlair specification](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/README.md), [reference code](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/droneid.py), [local packet tool](src/o4_packet_tool.py) |
 | V3/newer DroneID RF/PHY | **PUBLIC-SPEC; not yet integrated into local classic scanner** | [RF_PHY.md](https://github.com/EdwardBlair/dji-droneid-spec/blob/55bb88676dbc75913f074d7816ed5f7a3ab92454/RF_PHY.md) specifies **8 OFDM symbols**, **173-byte payload** plus CRC24A, 15.36 MS/s; do not identify as the local O2 nine-symbol PHY |
 | Full O4 decode using **real AeroScope dongle** | **PUBLIC-REPORT; OWNER-REPORTED EXPERIENCE** | [King-Of-Knights dongle console demonstration](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456); [owner's public report of offline decoding based on that research](https://github.com/proto17/dji_droneid/issues/60#issuecomment-6078335828). Independent USB command protocol and reproducible source remain non-public |
-| Host ↔ dongle communication emulation / authentication | **OWNER-REPORTED / PRIVATE** | The owner reports that the host-side emulation/pass-through work has been completed in private research discussions; do **not** equate that with emulating the cryptographic hardware, dumping firmware or extracting its key |
-| Physical dongle X-ray inspection | **OWNER-REPORTED / PRIVATE** | The owner reports completion of X-ray inspection/analysis; a hypothesized chip/COB or bonding-wire area (marked **#4** in discussed images) is **not** a confirmed chip identity or private-key storage location. Original images and repeatable measurements have not been published in this repo |
-| Session-key partial predictability / reduced effective entropy (route 2) | **OWNER-REPORTED / PRIVATE; owner reports scalable applicability** | Owner update 2026-10-30: some `K` bytes are reportedly fixed/derivable and residual randomness limited. No public independent per-byte analysis, firmware coverage, controlled captures or code; this is not extraction of the SM2 private scalar |
-| Chip opening / decapsulation / extraction | **OPEN / NEXT PHASE** | Chip analysis was described as the next step; **no completed invasive extraction** or public die analysis is established by the material reviewed |
+| **Route 2: session-key predictability (public research focus)** | **Privately evaluated; not publicly reproducible** | Some implementations reportedly have predictable elements in `K`; device coverage and the full method are not published |
 | Recovering real recipient SM2 private scalar `d` | **OPEN** | Neither this repo nor [the public spec (dummy test keys only)](https://github.com/EdwardBlair/dji-droneid-spec/tree/55bb88676dbc75913f074d7816ed5f7a3ab92454/keys) publishes the real scalar. A dongle that unwraps CRYP does not expose `d` |
-| Public, reproducible, **dongle-free** decryption of a captured real O4 session | **OPEN** | Synthetic SM2/AES tests establish interoperability, not recovery of the private key or a real captured session |
+| Publicly reproducible dongle-free decoder | **OPEN** | Route 2 has no published independent implementation; standard SM2 reference code requires a valid key |
 | Unencrypted startup DroneID in O4 | **DISPUTED / NOT REPRODUCED** | [Issue #3: a Mavic 4 Pro startup plaintext report](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/3#issuecomment-6459214434); [EdwardBlair requests exact firmware](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/3#issuecomment-6459273901). Do not generalize to all O4 |
 
-## Session-key predictability research update (30 October 2026; owner-reported)
+## Findings from route 2
 
-The owner now identifies **route 2, rather than invasive extraction of the long-term SM2 private scalar, as the privately validated potentially scalable approach**. The claim is that, in certain investigated implementations, the **aircraft DroneID session key `K`** includes fixed/derivable bytes and bytes with limited effective randomness. A constrained candidate search could recover `K`, subject to cross-checks against `key_id = SHA-256(K)[0:4]` and multiple same-session INFP plaintexts. This describes a potential weakness in key generation, **not** solving the SM2 discrete logarithm problem or breaking AES-128 itself.
+The first approach centered on extracting the long-term SM2 private key from secure hardware. **The project's main publicly described decryption approach is instead route 2:** studying fixed or predictable parts of the aircraft DroneID session key `K` and the randomness of the remaining bytes.
 
-**Evidence tier: `OWNER-REPORTED / PRIVATE`.** The owner reports private confirmation and practical generalizability, but this repository does **not** yet contain independently checkable sanitized captures, byte-level entropy results, device/firmware coverage, recovery code, or cross-device statistics. **The public protocol's freshly random AES-128 key remains the baseline model**; any implementation-specific deviations require separate validation. No claim is made that this applies to every O4 aircraft or to most manufacturers.
+On 30 October 2026 the team reported that this approach had shown potential for broader use in private tests. This concerns key generation in particular implementations, not a weakness in SM2 or AES themselves. The public protocol still describes a random AES-128 key as its reference model.
 
-The **aircraft DroneID session key `K`** and the **AeroScope host↔dongle transport-session key** are distinct. A 4-byte `key_id` alone is not sufficient proof due to possible collisions; candidate validation needs multiple same-session records and structural plaintext checks. Publicly reproducible, completely dongle-free decryption remains **OPEN** until supporting material is published.
+**What is public is a description of the approach and the finding, not a complete reproducible decoder.** Sensitive parameters, real session keys and raw session records are not released. Device and firmware applicability requires further verification. The aircraft key `K` is distinct from the AeroScope host–dongle transport key.
 
-## Attribution: King-Of-Knights and private conversations
+## Related public research
 
-The repository owner **identifies the individual in previously shared private chat screenshots as the GitHub account [King-Of-Knights](https://github.com/King-Of-Knights)**. This establishes the owner's attribution of the *chat correspondent*, **not** that the owner and that GitHub account are the same individual, or that any unposted screenshot is independently authenticated.
+The [Issue #1 hardware-assisted demonstration](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456) uses a real dongle to unwrap CRYP. It is not route 2, and its independent code was not released.
 
-- **King-Of-Knights (public):** posted [console output](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5957785456) indicating that an authentic AeroScope module accepted CRYP, returned a 16-byte AES session key, and was then used to obtain decrypted INFP telemetry. This is a **hardware-assisted offline decoder**, not a published 256-bit SM2 private key.
-- **Owner-side collaboration (private):** owner reports successful host-side dongle communication emulation and X-ray research, with invasive chip investigation still pending. The available context does not uniquely establish which collaborator physically performed each operation. Accordingly, record these as *owner-reported collaborative progress*, not as separately verified experiments attributed to a specific person.
-- **Private-chat “key” value:** a 128-hex-character (~64-byte) value discussed as a possible “key” has the length/shape of an **SM2 public point** `Qx || Qy` (32+32 bytes), **not evidence** of the **32-byte SM2 private scalar** `d`. Even passing the curve equation cannot establish that it belongs to the actual AeroScope recipient. Do not publish the private chat, hexadecimal value, chip imagery, or inferred ownership without permission and provenance.
+The [2024 Edgesource paper](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf) documents the upgrade-module hardware and protocol. Private conversations, identity links and hardware imagery without publication permission are omitted.
 
-The [2024 Edgesource teardown](https://www.aerial-defence.com/wp-content/uploads/2024/03/Security-Risks-of-the-Aeroscope-Upgrade-Module-Whitepaper-March-2024.pdf) documents earlier physical disassembly and a separate host–dongle transport session. Its photographs do not establish which 2026 researcher performed which teardown; it does **not** establish that the device uses a TEE.
-
-## Current cryptographic boundary
+## Published protocol baseline
 
 ```text
 Aircraft:
-  fresh 16-byte AES key K
+  16-byte AES key K (random in the published protocol model)
        ├─ key_id = SHA-256(K)[0:4]
        ├─ CRYP: SM2_Encrypt(Q, K) -> C1 || C3 || C2
        ├─ CRYP auxiliary AES-128-CTR ciphertext
@@ -65,7 +58,7 @@ Sources: [O4 protocol & known-session-key verification](https://github.com/Edwar
 
 **Remote ID distinction:** The `root_key → CMAC → RIDkey` discussion concerns the separate DJI Remote ID/controller channel, **not** the proprietary OcuSync DroneID CRYP/INFP scheme. [Correction](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-5948725656).
 
-## Latest RF/PHY evidence and limitation of this repository's scanner
+## V3 RF/PHY and the local scanner
 
 A new [public reference specification](https://github.com/EdwardBlair/dji-droneid-spec) (commit `55bb886`, 22 October 2026) defines the **newer v3 DroneID** waveform and RF schedule:
 
@@ -82,8 +75,8 @@ A new [public reference specification](https://github.com/EdwardBlair/dji-dronei
 
 - A third-party [report](https://github.com/luyii-code-1/dji-ocusync-droneid-research/issues/1#issuecomment-6478170923) states that 119 public transport blocks (12 CRYP, 93 INFP-10, 14 INFP-11) pass both CRCs under a shared key identifier. **Those packets have not had their real session independently decrypted** according to the same comment.
 - EdwardBlair has published a protocol parser, synthetic/dummy private-key round-trip tests and [public synthetic validation material](https://github.com/EdwardBlair/dji-droneid-spec/tree/55bb88676dbc75913f074d7816ed5f7a3ab92454/tests). These verify the *algorithm*, not possession of the genuine AeroScope recipient private key.
-- For a new confirmed real-session test: retain one original CRYP, at least two matching INFPs, CRC/FEC validity, authorized 16-byte **session key** (not recipient private key), model/firmware and privacy-safe test ground truth. Never commit authentic private keys, hardware credentials, unredacted serial numbers, operator/home locations, private chat screenshots, or raw X-ray media without deliberate disclosure approval.
-- The next hardware milestone is **independently documented chip identity / die / memory findings** after authorized analysis; X-ray evidence alone cannot localize the SM2 private scalar. More narrowly, a reproducible *host-side* dongle interface would verify hardware-assisted offline decoding without requiring the key to leave the dongle.
+- Subsequent route 2 publications should use anonymized statistical results, device/firmware scope, and synthetic test vectors. Real session keys, sensitive flight tracks, credentials and private correspondence should remain outside the public repository.
+- Hardware reverse engineering remains a separate research subject, not the project's main public decryption approach.
 
 ## Primary sources
 
